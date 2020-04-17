@@ -36,7 +36,9 @@ def menu():
 	# parser.add_argument("--globalSigma", "-g", type=int, default=0, help="If the σ parameter is global or not. 1 for global σ or 0 if not")
 	# parser.add_argument("--windowSize", "-w", type=int, default=5, help="Size of the window for updating gaussian model")
 	args = parser.parse_args()
-	# algorithm(args.algorithm, args.function, args.seed, args.penaltyMethod, args.parentsSize, args.nSize, args.offspringsSize, args.maxFE, args.crossoverProb, args.esType, args.globalSigma, args.windowSize)
+	# CEC20 Bound Constrained
+	# F1-F5 & F8-F10 : D = 5, 10, 15, 20
+	# F6 & F7 : D = 10, 15,
 	execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe)
 	# algorithm(args.algorithm, args.function, args.seed, args.penaltyMethod, args.parentsSize, args.nSize, args.offspringsSize, args.maxFE, args.crossoverProb, args.esType, args.globalSigma, args.windowSize)
 	print(args)

@@ -18,10 +18,6 @@ import numpy as np
 import operator as op # For sorting population
 from copy import deepcopy
 
-
-
-
-
 from math import sqrt, log, exp
 
 class Individual(object):
@@ -51,7 +47,6 @@ class Individual(object):
 	# Makes print(individual) a string, not a reference (memory adress)
 	def __repr__(self):
 		return str(self.__dict__) + "\n"
-
 
 class Population(object):
 	def __init__(self, nSize, popSize, function, objFunctionSize):
@@ -189,6 +184,11 @@ class Population(object):
 				best = deepcopy(self.individuals[i])
 		return best
 
+	def hallOfFame(self, hof):
+		currentBest = self.bestIndividual()
+		if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+			hof = deepcopy(currentBest)
+		return hof
 
 	def printBest(self, boolObjFunc, boolN):
 		best = self.bestIndividual()
@@ -199,7 +199,6 @@ class Population(object):
 				print("{}\t".format(n), end=" ")
 		print()
 
-
 	def moveArzToPop(self, list2d):
 		# self.printProjectVariables()
 		for i in range(len(self.individuals)): # Lambda_
@@ -207,37 +206,30 @@ class Population(object):
 		# print("after magic happ[enedeiahsuasa")
 		# self.printProjectVariables()
 
-	def selectMuIndividuals(self,  mu):
+	def selectMuIndividuals(self, mu):
 		population = []
 		for i in range(mu):
 			population.append(self.individuals[i].n)
 		return population
 
-	def cmaPopulationGenerate(self, centroid, sigma, BD):
-		parentsSize = len(self.individuals)
+	def cmaPopulationGenerate(self, parentsSize, centroid, sigma, BD):
+		# Generates new array of project variables
 		nSize = len(self.individuals[0].n)
 		arz = np.random.standard_normal((parentsSize, nSize))
 		arz = centroid + sigma * np.dot(arz, BD.T)
-		# list(map(ind_init, arz))
-		l2d = arz.tolist() # NOTE LINHA EQUIVALAENTE AO MAP QUE O DEAP FAZ gera uma lista de lista
-		# print("centroid: {} \t sigma: {} \n BD: {}".format(centroid, sigma, BD))\
-		# print("arz: {}".format(arz))
+		l2d = arz.tolist() # Transforms matrix in a list of lists
 		self.moveArzToPop(l2d)
 
-
-	def cmaUpdateCovarianceMatrix(self, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN,BD):
-		self.sort(None)
-		dim = len(self.individuals[0].n)
-		parentsSize = len(self.individuals)
-		mu = int(parentsSize / 2)
+	def cmaUpdateCovarianceMatrix(self, parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN,BD):
+		nSize = len(self.individuals[0].n)
 		populationList2d = self.selectMuIndividuals(mu)
 		old_centroid = centroid
 		# centroid = np.dot(weights, population[0:mu])
-		centroid = np.dot(weights, populationList2d)
+		centroid = np.dot(weights, populationList2d) # Recombination
 
 		c_diff = centroid - old_centroid
 
-		# Cumulation : update evolution path
+		# Cumulation : update evolution paths
 		ps = (1 - cs) * ps \
 				+ sqrt(cs * (2 - cs) * mueff) / sigma \
 				* np.dot(B, (1. / diagD) *
@@ -245,7 +237,7 @@ class Population(object):
 
 		hsig = float((np.linalg.norm(ps) /
 									sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
-									(1.4 + 2. / (dim + 1.))))
+									(1.4 + 2. / (nSize + 1.))))
 
 		update_count += 1
 
@@ -253,11 +245,7 @@ class Population(object):
 				* sqrt(cc * (2 - cc) * mueff) / sigma \
 				* c_diff
 
-		# print(populationList2d)
-		# sys.exit("caminhando e cantando")
-
 		# Update covariance matrix
-		# artmp = population[0:mu] - old_centroid
 		artmp = populationList2d - old_centroid
 		C = (1 - ccov1 - ccovmu + (1 - hsig) *
 							ccov1 * cc * (2 - cc)) * C \
@@ -265,6 +253,7 @@ class Population(object):
 				+ ccovmu * np.dot((weights * artmp.T), artmp) \
 				/ sigma ** 2
 
+		# Adapt step-size sigma
 		sigma *= np.exp((np.linalg.norm(ps) / chiN - 1.) *
 														cs / damps)
 
@@ -284,56 +273,52 @@ class Population(object):
 	def __repr__(self):
 		return str(self.__dict__) + "\n"
 
+def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
+	# User defined params
+	if parentsSize is None:
+		parentsSize = int(4 + 3 * log(nSize)) # Population size
+	if centroid is None:
+		centroid = np.array([5.0]*nSize) # objective variables initial points
+	if sigma is None:
+		sigma = 5.0 # coordinate wise standard deviation(step-size)
+	if mu is None:
+		mu = int(parentsSize / 2) # number of parents selected (selected search points in the population)
+	if rweights is None:
+		rweights = "linear"
 
-def cmaInitParams(nSize):
-	# Note
-	parentsSize = int(4 + 3 * log(nSize))
-	centroid = np.array([5.0]*nSize)
-	dim = len(centroid) # NOTE dim = nSize
-	sigma = 5.0
-	pc = np.zeros(dim)
-	ps = np.zeros(dim)
-	chiN = sqrt(dim) * (1 - 1. / (4. * dim) + 1. / (21. * dim ** 2))
-	C = np.identity(dim)
-	diagD, B = np.linalg.eigh(C)
-
+	# Initiliaze dynamic (internal) strategy parameters and constants
+	pc = np.zeros(nSize) # evolution paths for C
+	ps = np.zeros(nSize) # evolutions paths for sigma
+	chiN = sqrt(nSize) * (1 - 1. / (4. * nSize) + 1. / (21. * nSize ** 2)) # expectation of ||N(0,I)|| == norm(randn(N,1))
+	C = np.identity(nSize) # covariance matrix
+	diagD, B = np.linalg.eigh(C) # 
 	indx = np.argsort(diagD) # return the indexes that would sort an array
-	# print("diagD: {}".format(diagD))
-	# print("B: {}".format(B))
-	# print("indx: {}".format(indx))
-	diagD = diagD[indx] ** 0.5
-	# print("diagD pós conta: {}".format(diagD))
-	B = B[:, indx]
-	# print("B pós conta: {}".format(B))
+	diagD = diagD[indx] ** 0.5 # diagonal matrix D defines the scaling
+	B = B[:, indx] # B defines de coordinate system
 	BD = B * diagD
-
 	cond = diagD[indx[-1]] / diagD[indx[0]] # divide o valor mais alto do pelo mais baixo
+	update_count = 0 # B and D update at feval == 0
 
-	# lambda_ = int(4 + 3 * log(dim))
-	# parentsSize = lambda_ # TODO PODERÁ SER REMOVIDO APÓS ALGORITMO FUNCIONAR
-	update_count = 0 # eigenval from old code
+	# Strategy parameter setting: Selection
+	# TODO can define if weights is gonna be linear, superlienar or equal, (in this case, superlinear)
+	if rweights == "superlinear":
+		weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1))
+	elif rweights == "linear":
+		weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # muXone recombination weights
+	elif rweights == "equal":
+		weights = np.ones(mu)
+	weights /= sum(weights) # normalize recombination weights array
+	mueff = 1. / sum(weights **2) # vriance-effective size of mu
 
-
-
-	# NOTE COmpute params
-	mu = int(parentsSize / 2)
-	# can define if weights is gonna be linear, superlienar or equal, (in this case, superlinear)
-	weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # np.arange(1, tam) cria vetor de tamanho tam espacado de 1 em 1
-
-	weights /= sum(weights)
-	mueff = 1. / sum(weights **2)
-
-	cc = 4. / (dim + 4.)
-	cs = (mueff + 2.) / (dim + mueff + 3.)
-
-	ccov1 = 2. / ((dim + 1.3) ** 2 + mueff) # c1 from old code
-	ccovmu = 2. * (mueff - 2. + 1. / mueff) / ((dim + 2.) ** 2 + mueff) # cmu from old code
-
+	# Strategy parameter setting: Adaptation
+	cc = 4. / (nSize + 4.) # time constant for cumulation for C
+	cs = (mueff + 2.) / (nSize + mueff + 3.) # t-const for cumulation for sigma control
+	ccov1 = 2. / ((nSize + 1.3) ** 2 + mueff) # learning rate for rank one update of C
+	ccovmu = 2. * (mueff - 2. + 1. / mueff) / ((nSize + 2.) ** 2 + mueff) # and for rank-mu update
 	ccovmu = min(1 - ccov1, ccovmu)
+	damps = 1. + 2. * max(0, sqrt((mueff - 1.) / (nSize + 1.)) - 1.) + cs # # damping for sigma
 
-	damps = 1. + 2. * max(0, sqrt((mueff - 1.) / (dim + 1.)) - 1.) + cs
-
-	return parentsSize, mu, centroid, parentsSize, sigma, pc, ps, chiN, C, diagD, B, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
+	return parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
 
 # Python function to pass values of a python list to a C++ (swig) array
 def populateArray(a, l, size):
@@ -367,9 +352,6 @@ def defineMaxEval(function, nSize):
 		sys.exit("Function not defined.")
 
 	return maxFe
-
-
-
 
 # Generate random indexes that won't repeat on a generation of new offsprings
 def populationPickProfit(parentIdx, parentsSize):
@@ -615,8 +597,6 @@ def CMAESOld(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 			D = np.diag(np.sqrt(D)) # D containts standard deviations now
 	hof.printIndividual(True, False)
 
-
-
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 	np.random.seed(seed)
 	strFunction = str(function)
@@ -624,80 +604,32 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
 
-
-	# parentsSize = int(4 + 3 * log(dim))
 	feval = 0
-	# generatedOffspring = int(offspringsSize / parentsSize)
-
-	# NOTE Tudo isso é meu INIT
-	# centroid = np.array([5.0]*nSize)
-	# dim = len(centroid) # NOTE dim = nSize
-	# sigma = 5.0
-	# pc = np.zeros(dim)
-	# ps = np.zeros(dim)
-	# chiN = sqrt(dim) * (1 - 1. / (4. * dim) + 1. / (21. * dim ** 2))
-	# C = np.identity(dim)
-	# diagD, B = np.linalg.eigh(C)
-
-	# indx = np.argsort(diagD) # return the indexes that would sort an array
-	# # print("diagD: {}".format(diagD))
-	# # print("B: {}".format(B))
-	# # print("indx: {}".format(indx))
-	# diagD = diagD[indx] ** 0.5
-	# # print("diagD pós conta: {}".format(diagD))
-	# B = B[:, indx]
-	# # print("B pós conta: {}".format(B))
-	# BD = B * diagD
-
-	# cond = diagD[indx[-1]] / diagD[indx[0]] # divide o valor mais alto do pelo mais baixo
-
-	# # lambda_ = int(4 + 3 * log(dim))
-	# # parentsSize = lambda_ # TODO PODERÁ SER REMOVIDO APÓS ALGORITMO FUNCIONAR
-	# update_count = 0 # eigenval from old code
-
-	# # NOTE ComputeParams
-	# mu = int(lambda_ / 2)
-	# # can define if weights is gonna be linear, superlienar or equal, (in this case, superlinear)
-	# weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # np.arange(1, tam) cria vetor de tamanho tam espacado de 1 em 1
-
-	# weights /= sum(weights)
-	# mueff = 1. / sum(weights **2)
-
-	# cc = 4. / (dim + 4.)
-	# cs = (mueff + 2.) / (dim + mueff + 3.)
-
-	# ccov1 = 2. / ((dim + 1.3) ** 2 + mueff) # c1 from old code
-	# ccovmu = 2. * (mueff - 2. + 1. / mueff) / ((dim + 2.) ** 2 + mueff) # cmu from old code
-
-	# ccovmu = min(1 - ccov1, ccovmu)
-
-	# damps = 1. + 2. * max(0, sqrt((mueff - 1.) / (dim + 1.)) - 1.) + cs
-	# NOTE Aqui finaliza meu INIT + computeParams
-
-	parentsSize, mu, centroid, parentsSize, sigma, pc, ps, chiN, C, diagD, B, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize)
+	# User defined params (if set to None, uses default)
+	parentsSize = centroid = sigma = mu = rweights = None
+	rweights = "equal"
+	# Init all cmaes params
+	parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
 
 	hof = None
-
-
-
 	if hasConstraints:
 		sys.exit("Not implemented.")
 	else:
 		parents = Population(nSize, parentsSize, function, 1) # TODO Melhorar isso (Gerando 2x)
 
 	while feval < maxFe:
-		print(feval)
-		# NOTE Generate new population
-		parents.cmaPopulationGenerate(centroid, sigma, BD)
+		# print(feval)
+		# Generate new population
+		parents.cmaPopulationGenerate(parentsSize, centroid, sigma, BD)
+		# Evaluate and sort
 		feval = parents.evaluate(function, feval)
-		# NOTE Update covariance matrix strategy from the population
 		parents.sort(None)
-
-
+		# Gets the 'hall of fame" individual
+		hof = parents.hallOfFame(hof)
+		# NOTE Update covariance matrix strategy from the population
 		centroid, sigma, pc, ps, B, diagD, C, update_count, BD = parents.cmaUpdateCovarianceMatrix(
-			centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
+			parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
 			ps, B, diagD, C, update_count, chiN, BD
 		)
-		parents.printBest(True, True)
-
-	# hof.printIndividual(True, False)
+		# parents.printBest(True, True)
+	hof.printIndividual(True, True)
