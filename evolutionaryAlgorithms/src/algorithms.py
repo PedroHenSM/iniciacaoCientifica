@@ -11,8 +11,10 @@ import sys
 sys.path.append("../functions")
 sys.path.append("../functions/utils")
 sys.path.append("../functions/cec2020/boundConstrained")
+sys.path.append("../functions/eureka")
 import utils
 import cec2020BoundConstrained
+import eureka
 import simpleFunctions as Functions
 import numpy as np
 import operator as op # For sorting population
@@ -21,10 +23,14 @@ from copy import deepcopy
 from math import sqrt, log, exp
 
 class Individual(object):
-	def __init__(self, n, objectiveFunction, arz):
+	def __init__(self, n, objectiveFunction, g=None, h=None, violations=None, violationSum=None, fitness=None):
 		self.n = n
 		self.objectiveFunction = objectiveFunction
-		self.arz = arz
+		self.g = g
+		self.h = h
+		self.violations = violations
+		self.violationSum = violationSum
+		self.fitness = fitness
 
 	def printObjectiveFunction(self):
 		for item in self.objectiveFunction:
@@ -49,22 +55,21 @@ class Individual(object):
 		return str(self.__dict__) + "\n"
 
 class Population(object):
-	def __init__(self, nSize, popSize, function, objFunctionSize):
+	def __init__(self, nSize, popSize, function, objFunctionSize, lowerBound=None, upperBound=None):
 		strFunction = str(function)
 		self.individuals = []
 		for _ in range(popSize):
 			n = []
 			# objFunc = [None for i in range(objFunctionSize)]
 			objFunc = [99999 for i in range(objFunctionSize)]
-			arz = [None for i in range(nSize)]
 			for _ in range(nSize):
-				if strFunction[0] == "2": # Truss problems
-					sys.exit("Not implemented.")
-				elif strFunction[0] == "3":
+				if strFunction[0] == "1": # Truss problems
+					n.append(np.random.uniform(lowerBound, upperBound))
+				elif strFunction[0] == "3": # cec 2020 bound constrained
 					n.append(np.random.uniform(-100, 100))
 				else:
 					sys.exit("Function not defined.")
-			self.individuals.append(Individual(n, objFunc, arz))
+			self.individuals.append(Individual(n, objFunc))
 
 	def printProjectVariables(self):
 		for individual in self.individuals:
@@ -76,20 +81,34 @@ class Population(object):
 			print(individual.objectiveFunction, end="")
 		print()
 
-	def evaluate(self, function, fe):
+	def evaluate(self, function, fe, truss=None):
 		strFunction = str(function)
 		objFuncSize = len(self.individuals[0].objectiveFunction)
 		nSize = len(self.individuals[0].n)
-		# nSize = 5
 		for individual in self.individuals:
 			fe = fe + 1
-			if strFunction[0] == "1":
-				if(function == 11):
-					Functions.f01(individual.n, individual.objectiveFunction)
-				else:
-					sys.exit("Fuction not defined.")
-			elif strFunction[0] == "2": # Trusses
-				sys.exit("Not implemented")
+			if strFunction[0] == "1": # Trusses
+				# Values array/list is the array/list with the objectiveFunction and constraints of type g
+				valuesArraySize = truss.getNumberObjectives() + truss.getNumberConstraints() # the size will be objFunction (1) + gSize
+				xArray = utils.new_doubleArray(truss.getDimension()) # creates an array
+				valuesArray = utils.new_doubleArray(valuesArraySize) # the size will be objFunct(1) + gSize
+				# def build_array(a, l, startIdx, size, strFunction):
+				# def build_list(l, a, startIdx, size, strFunction):
+				# Transfers values from a python list to a C++ array
+				populateArray(xArray, individual.n, 0, truss.getDimension())
+				valuesList = individual.objectiveFunction + individual.g
+				populateArray(valuesArray, valuesList, 0, valuesArraySize)
+				# Evaluate population
+				truss.evaluation(xArray, valuesArray)
+				# Transfers values from a C++ array to a python list
+				populateList(individual.n, xArray, 0, truss.getDimension())
+				individual.objectiveFunction[0] = utils.doubleArray_getitem(valuesArray, 0)
+				populateList(individual.g, valuesArray, 0, valuesArraySize)
+				# Cleans mess
+				utils.delete_doubleArray(xArray)
+				utils.delete_doubleArray(valuesArray)
+			elif strFunction[0] == "2":
+				sys.exit("Not defined")
 			elif strFunction[0] == "3": # Cec 2020 bound constrained
 				# Gets all numbers except the first
 				func = int(strFunction[1:])
@@ -97,18 +116,18 @@ class Population(object):
 				xArray = utils.new_doubleArray(nSize)
 				objFuncArray = utils.new_doubleArray(objFuncSize)
 				# Transfers values from a python list to a C++ array
-				populateArray(xArray, individual.n, nSize)
-				populateArray(objFuncArray, individual.objectiveFunction, objFuncSize)
+				populateArray(xArray, individual.n, 0, nSize)
+				populateArray(objFuncArray, individual.objectiveFunction, 0, objFuncSize)
 				# Evaluate population
 				cec2020BoundConstrained.cec20_test_func(xArray, objFuncArray, nSize, 1, func)
 				# Transfers values from a C++ array to a python list
-				populateList(individual.n, xArray, nSize)
-				populateList(individual.objectiveFunction, objFuncArray, objFuncSize)
+				populateList(individual.n, xArray, 0, nSize)
+				populateList(individual.objectiveFunction, objFuncArray, 0, objFuncSize)
 				# Cleans mess
 				utils.delete_doubleArray(xArray)
 				utils.delete_doubleArray(objFuncArray)
 			else:
-				sys.exit("Fuction not defined.")
+				sys.exit("Function not defined.")
 
 		# Returns functions evaluations
 		return fe
@@ -200,11 +219,8 @@ class Population(object):
 		print()
 
 	def moveArzToPop(self, list2d):
-		# self.printProjectVariables()
 		for i in range(len(self.individuals)): # Lambda_
 			self.individuals[i].n = deepcopy(list2d[i])
-		# print("after magic happ[enedeiahsuasa")
-		# self.printProjectVariables()
 
 	def selectMuIndividuals(self, mu):
 		population = []
@@ -224,7 +240,6 @@ class Population(object):
 		nSize = len(self.individuals[0].n)
 		populationList2d = self.selectMuIndividuals(mu)
 		old_centroid = centroid
-		# centroid = np.dot(weights, population[0:mu])
 		centroid = np.dot(weights, populationList2d) # Recombination
 
 		c_diff = centroid - old_centroid
@@ -265,13 +280,30 @@ class Population(object):
 		diagD = diagD[indx] ** 0.5
 		B = B[:, indx]
 		BD = B * diagD
-		# self, a, centroid, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN, BD):
 		return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
-		# return dim, centroid, weights, mu, cs, ps, mueff, sigma, B, BD, C,  diagD, update_count, chiN, cc, pc, ccov1, ccovmu, damps, ):
 
 	# Makes print(population) a string, not a reference (memory adress)
 	def __repr__(self):
 		return str(self.__dict__) + "\n"
+
+def initializeTruss(function):
+	if function == 110:  # Truss 10 bars
+		truss = eureka.F101Truss10Bar()
+	elif function == 125:  # Truss 25 bars
+		truss = eureka.F103Truss25Bar()
+	elif function == 160:  # Truss 60 bars
+		truss = eureka.F105Truss60Bar()
+	elif function == 172:  # Truss 72 bars
+		truss = eureka.F107Truss72Bar()
+	elif function == 1942:  # Truss 942 bars
+		truss = eureka.F109Truss942Bar()
+	else:
+		sys.exit("Function not defined.")
+	bounds = utils.new_doubleddArray(truss.getDimension())
+	bounds = utils.castToDouble(truss.getBounds())
+	lowerBound = eureka.doubleArray_getitem(bounds, 0, 0)
+	upperBound = eureka.doubleArray_getitem(bounds, 0, 1)
+	return truss, lowerBound, upperBound
 
 def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	# User defined params
@@ -300,7 +332,6 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	update_count = 0 # B and D update at feval == 0
 
 	# Strategy parameter setting: Selection
-	# TODO can define if weights is gonna be linear, superlienar or equal, (in this case, superlinear)
 	if rweights == "superlinear":
 		weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1))
 	elif rweights == "linear":
@@ -321,16 +352,18 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	return parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
 
 # Python function to pass values of a python list to a C++ (swig) array
-def populateArray(a, l, size):
+def populateArray(a, l, startIdx, size):
 	for i in range(size):
-		# Sets the arr[i] with value from list[i]
-		utils.doubleArray_setitem(a, i, l[i])
+		# Sets the arr[startIdx] with value from list[i]
+		utils.doubleArray_setitem(a, startIdx, l[i])
+		startIdx+=1
 
 # Python function to pass values of a C++ array (swig) to a python list
-def populateList(l, a, size):
+def populateList(l, a, startIdx, size):
 	for i in range(size):
-		# Sets the list[i] with the value from arr[i]
-		l[i] = utils.doubleArray_getitem(a, i)
+		# Sets the list[i] with the value from arr[startIdx]
+		l[i] = utils.doubleArray_getitem(a, startIdx)
+		startIdx+=1
 
 def defineMaxEval(function, nSize):
 	strFunction = str(function)
@@ -376,6 +409,21 @@ def populationPick(solution, flags, parentSize):
 				break
 	return idx
 
+def initializeConstraints(function, nSize):
+	strFunction = str(function)
+	truss = lowerBound = upperBound = None
+	if strFunction[0] == "1": # Trusses
+		truss, lowerBound, upperBound = initializeTruss(function)
+		nSize =  truss.getDimension()
+		g, h, constraintsSize = truss.getNumberConstraints(), 0, truss.getNumberConstraints + 0
+	if function == 31:
+		g = 2
+		h = 0
+		constraintsSize = g + h
+	else:
+		sys.exit("Constraints not defined for function.")
+	return g, h, constraintsSize, truss, lowerBound, upperBound, nSize
+
 # Differential evolution
 def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 	np.random.seed(seed)
@@ -392,6 +440,13 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 	generatedOffspring = int(offspringsSize / parentsSize)
 
 	if hasConstraints:
+		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize = initializeConstraints(function, nSize)
+		# Para apm
+		penaltyCoefficients = [None for i in range(constraintsSize)]
+		avgObjFunc = -1
+		parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound)
+		offsprings = Population(nSize, offspringsSize, function, 1, lowerBound, upperBound)
+		feval = parents.evaluate(function, feval)
 		sys.exit("Not implemented.")
 	else:
 		parents = Population(nSize, parentsSize, function, 1)
