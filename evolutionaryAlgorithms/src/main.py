@@ -6,15 +6,15 @@ import argparse
 import numpy as np
 from math import sqrt, log, exp
 
-def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe):
+def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
 	if algorithm == "GA":
 		sys.exit("Not implemented.")
 	elif algorithm == "DE":
-		algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe)
+		algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
 	elif algorithm == "ES":
 		sys.exit("Not implemented.")
 	elif algorithm == "CMAES":
-		algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe)
+		algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
 	else:
 		sys.exit("Algorithm not found.")
 
@@ -26,7 +26,7 @@ def menu():
 						"For the truss problem, the first digit must be 2, followed by the number of the bars in the problem. "
 						"Example: 225, is for the truss of 25 bars")
 	parser.add_argument("--seed", "-s", type=int, default=1, help="Seed to be used")
-	# parser.add_argument("--penaltyMethod", "-p", type=int, default=1, help="Penalty method to be used. 1 for Deb Penalty or 2 for APM")
+	parser.add_argument("--constraintHandling", "-p", type=int, default=1, help="Constraint handling method to be used. 1 for Deb Penalty or 2 for APM")
 	parser.add_argument("--parentsSize", "-u", type=int, default=50, help="µ is the parental population size")  # u from µ (mi) | µ ≈ λ/4
 	parser.add_argument("--nSize", "-n", type=int, default=5, help="Search space dimension")
 	parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
@@ -39,7 +39,7 @@ def menu():
 	# CEC20 Bound Constrained
 	# F1-F5 & F8-F10 : D = 5, 10, 15, 20
 	# F6 & F7 : D = 10, 15,
-	execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe)
+	execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe, args.constraintHandling)
 	# algorithm(args.algorithm, args.function, args.seed, args.penaltyMethod, args.parentsSize, args.nSize, args.offspringsSize, args.maxFE, args.crossoverProb, args.esType, args.globalSigma, args.windowSize)
 	print(args)
 
