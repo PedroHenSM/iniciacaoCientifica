@@ -42,12 +42,17 @@ class Individual(object):
 			print(item, end="	")
 		print("")
 
-	def printIndividual(self, boolObjFunc, boolN):
+	def printIndividual(self, boolObjFunc, boolN, constraintHandling):
 		if boolObjFunc:
 			print("{:}\t".format(self.objectiveFunction[0]), end=" ")
 		if boolN:
 			for n in self.n:
 				print("{}\t".format(n), end=" ")
+		if constraintHandling is not None:
+			if constraintHandling == 1: # Deb
+				print("{}\t".format(self.violationSum))
+			elif constraintHandling == 2: # APM
+				print("{}\t".format(self.fitness))
 		print()
 
 	# Makes print(individual) a string, not a reference (memory adress)
@@ -61,10 +66,10 @@ class Population(object):
 		for _ in range(popSize):
 			n = []
 			objFunc = [99999 for i in range(objFunctionSize)]
-			g = [99999 for i in range(gSize)]
-			h = [99999 for i in range(hSize)]
-			violations = [99999 for i in range(gSize + hSize)]
-			violationSum = 99999
+			g = [99999 for i in range(gSize)] if gSize is not None else None
+			h = [99999 for i in range(hSize)] if hSize is not None else None
+			violations = [99999 for i in range(gSize + hSize)] if gSize is not None else None
+			violationSum = 99999 if gSize is not None else None
 			for _ in range(nSize):
 				if strFunction[0] == "1": # Truss problems
 					n.append(np.random.uniform(lowerBound, upperBound))
@@ -95,8 +100,6 @@ class Population(object):
 				valuesArraySize = truss.getNumberObjectives() + truss.getNumberConstraints() # the size will be objFunction (1) + gSize
 				xArray = utils.new_doubleArray(truss.getDimension()) # creates an array
 				valuesArray = utils.new_doubleArray(valuesArraySize) # the size will be objFunct(1) + gSize
-				# def build_array(a, l, startIdx, size, strFunction):
-				# def build_list(l, a, startIdx, size, strFunction):
 				# Transfers values from a python list to a C++ array
 				populateArray(xArray, individual.n, 0, truss.getDimension())
 				valuesList = individual.objectiveFunction + individual.g
@@ -150,7 +153,7 @@ class Population(object):
 				# Best offsprings better than parent, he becomes the parent
 				if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
 					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-		if constraintHandling == 1: # Deb
+		elif constraintHandling == 1: # Deb
 			idx = 0
 			for i in range(len(self.individuals)): # Parents size
 				bestIdx = idx
@@ -191,7 +194,6 @@ class Population(object):
 		else:
 			sys.exit("Constraint handling not defined.")
 
-
 	def selectCMAES(self, offsprings, hasConstraints):
 		if hasConstraints:
 			sys.exit("Not implemented.")
@@ -229,7 +231,7 @@ class Population(object):
 					individual.n[i] = nMin
 
 	def sort(self, offsprings, constraintHandling):
-		if constraintHandling is None: # Bound constraint problem
+		if constraintHandling is None: # Bound constrained problem
 			self.individuals.sort(key=op.attrgetter("objectiveFunction"))
 			if offsprings is not None:
 				offsprings.individuals.sort(key=op.attrgetter("objectiveFunction"))
@@ -370,11 +372,12 @@ class Population(object):
 
 	def printBest(self, boolObjFunc, boolN, constraintHandling):
 		best = self.bestIndividual(constraintHandling)
-		if boolObjFunc:
-			print("{:}\t".format(best.objectiveFunction[0]), end=" ")
-		if boolN:
-			for n in best.n:
-				print("{}\t".format(n), end=" ")
+		best.printIndividual(boolObjFunc, boolN, constraintHandling)
+		# if boolObjFunc:
+		# 	print("{:}\t".format(best.objectiveFunction[0]), end=" ")
+		# if boolN:
+		# 	for n in best.n:
+		# 		print("{}\t".format(n), end=" ")
 		print()
 
 	def moveArzToPop(self, list2d):
@@ -486,6 +489,14 @@ def initiliazeHandleConstraintsParams(function):
 		avgObjFunc = -1
 		return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
 
+def constraintsInitParams (function, constraintHandling):
+	if constraintHandling is not None:
+		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = initiliazeHandleConstraintsParams(function)
+	else:
+		sys.exit("Constraint handling not defined")
+
+	return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
+
 def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	# User defined params
 	if parentsSize is None:
@@ -532,16 +543,14 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 
 	return parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
 
-def deInitParams(function, parentsSize, offspringsSize, constraintHandling):
+def deInitParams(function, parentsSize, offspringsSize):
 	# Define DE parameters
 	CR = 0.9
 	F = 0.6
 	feval = 0
 	hof = None
 	generatedOffspring = int(offspringsSize / parentsSize)
-	if constraintHandling is not None:
-		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = initiliazeHandleConstraintsParams(function)
-	return CR, F, feval, hof, generatedOffspring, gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
+	return CR, F, feval, hof, generatedOffspring
 
 # Python function to pass values of a python list to a C++ (swig) array
 def populateArray(a, l, startIdx, size):
@@ -609,19 +618,25 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 	if strFunction[0] != "1": # Bound constrained problems
 		constraintHandling = None
 
-	CR, F, feval, hof, generatedOffspring, gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = deInitParams(function, parentsSize, offspringsSize, constraintHandling)
+	CR, F, feval, hof, generatedOffspring = deInitParams(function, parentsSize, offspringsSize)
+	# Constraints handling
+	if constraintHandling:
+		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
+	else:
+		lowerBound = upperBound = gSize = hSize = truss = None
 
 	# Generate initial population and evaluate
 	parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 	offsprings = Population(nSize, offspringsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 	feval = parents.evaluate(function, feval, truss)
-
 	# Constraints handling
 	if constraintHandling:
 		avgObjFunc = parents.handleConstraints(None, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
 
 	# DE+DEB: T10: 5071.401883658249 | T25: 484.0522202840531 | T60: 428.33801862127643 | T72: 391.41071625298974 
 	# DE+APM: T10: 5067.045222753923 | T25: 484.065205988603 | T60: 425.8179547877767 | T72: 383.963083800768
+	if feval > maxFe:
+		sys.exit("Maximum number of function evaluations too low.")
 	while feval < maxFe:
 		# Generate new population
 		parents.deGeneratePopulation(offsprings, generatedOffspring, CR, F)
@@ -642,7 +657,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 	
 	# Prints the best individual of the generation and hall of fame
 	parents.printBest(True, False, constraintHandling)
-	hof.printIndividual(True, False)
+	hof.printIndividual(True, False, constraintHandling)
 
 
 def CMAESOld(function, nSize, parentsSize, offspringsSize, seed, maxFe):
@@ -815,39 +830,59 @@ def CMAESOld(function, nSize, parentsSize, offspringsSize, seed, maxFe):
 			D = np.diag(np.sqrt(D)) # D containts standard deviations now
 	hof.printIndividual(True, False)
 
-def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe):
+def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
 	np.random.seed(seed)
 	strFunction = str(function)
-	hasConstraints = False
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
+
+	if strFunction[0] != "1": # Bound constrained problems
+		constraintHandling = None
 
 	feval = 0
 	# User defined params (if set to None, uses default)
 	parentsSize = centroid = sigma = mu = rweights = None
 	rweights = "equal"
-	# Init all cmaes params
+
+	if constraintHandling:
+		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
+	else:
+		lowerBound = upperBound = gSize = hSize = truss = None
+
+	# Initialize all cmaes params
 	parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
 
+	parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 	hof = None
-	if hasConstraints:
-		sys.exit("Not implemented.")
-	else:
-		parents = Population(nSize, parentsSize, function, 1, lowerBound=None, upperBound=None, gSize=None, hSize=None) # TODO Melhorar isso (Gerando 2x)
 
+
+	# CMAESrweights=equal+DEB: T10: 5061.970157299801 | T25: 484.05229151214365 | T60: 311.6048214519769 | T72: 380.0802294286406  
+	# CMAES+APM: T10: 5062 | T25: 484 | T60: 313 | T72: 380
+	if feval > maxFe:
+		sys.exit("Maximum number of function evaluations too low.")
 	while feval < maxFe:
-		# print(feval)
 		# Generate new population
 		parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
+		
+		parents.checkBounds(function, lowerBound, upperBound)
+
 		# Evaluate and sort
-		feval = parents.evaluate(function, feval, truss=None)
-		parents.sort()
+		feval = parents.evaluate(function, feval, truss)
+
+		# Handling constraints, if necessary
+		if constraintHandling:
+			avgObjFunc = parents.handleConstraints(None, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
+	
+		parents.sort(None, constraintHandling)
 		# Gets the 'hall of fame" individual
-		hof = parents.hallOfFame(hof)
-		# NOTE Update covariance matrix strategy from the population
+		hof = parents.hallOfFame(hof, constraintHandling)
+
+		# Update covariance matrix strategy from the population
 		centroid, sigma, pc, ps, B, diagD, C, update_count, BD = parents.cmaUpdateCovarianceMatrix(
 			parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
 			ps, B, diagD, C, update_count, chiN, BD
 		)
-		# parents.printBest(True, True)
-	hof.printIndividual(True, True)
+		parents.printBest(True, False, constraintHandling)
+
+	parents.printBest(True, False, constraintHandling)
+	hof.printIndividual(True, True, constraintHandling)
