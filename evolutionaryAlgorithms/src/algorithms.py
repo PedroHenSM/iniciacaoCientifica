@@ -20,8 +20,6 @@ import numpy as np
 import operator as op # For sorting population
 from copy import deepcopy
 
-from math import sqrt, log, exp
-
 class Individual(object):
 	def __init__(self, n, objectiveFunction, g=None, h=None, violations=None, violationSum=None, fitness=None):
 		self.n = n
@@ -31,16 +29,6 @@ class Individual(object):
 		self.violations = violations
 		self.violationSum = violationSum
 		self.fitness = fitness
-
-	def printObjectiveFunction(self):
-		for item in self.objectiveFunction:
-			print(item, end="	")
-		print()
-
-	def printProjectVariables(self):
-		for item in self.n:
-			print(item, end="	")
-		print("")
 
 	def printIndividual(self, boolObjFunc, boolN, constraintHandling):
 		if boolObjFunc:
@@ -79,15 +67,22 @@ class Population(object):
 					sys.exit("Function not defined.")
 			self.individuals.append(Individual(n, objFunc, g, h, violations, violationSum))
 
-	def printProjectVariables(self):
+	def printPopulation(self, boolObjFunc, boolN, constraintHandling):
 		for individual in self.individuals:
-			print(individual.n, end="\n")
+			if boolObjFunc:
+				print(individual.objectiveFunction)
+			if boolN:
+				print(individual.n)
+			if constraintHandling:
+				if constraintHandling == 1: # Deb
+					print(individual.violationSum)
+				if constraintHandling == 2: # APM
+					print(individual.fitness)
 		print()
 
-	def printObjectiveFunction(self):
-		for individual in self.individuals:
-			print(individual.objectiveFunction, end="")
-		print()
+	def printBest(self, boolObjFunc, boolN, constraintHandling):
+		best = self.bestIndividual(constraintHandling)
+		best.printIndividual(boolObjFunc, boolN, constraintHandling)
 
 	def evaluate(self, function, fe, truss):
 		strFunction = str(function)
@@ -138,79 +133,48 @@ class Population(object):
 		# Returns functions evaluations
 		return fe
 
-# TODO Verify way to optime this function (basically the same if its being used three times)
-	def selectDE(self, offsprings, generatedOffspring, constraintHandling):
-		if constraintHandling is None: # Bound constrained problems
-			idx = 0
-			for i in range(len(self.individuals)): # Parents size
-				bestIdx = idx
-				# walks through every n offsprings of each parent
-				while idx < generatedOffspring * (i + 1):
-					# Picks the best offspring
+	def deSelect(self, offsprings, generatedOffspring, constraintHandling):
+		idx = 0
+		for i in range(len(self.individuals)): # Parents size
+			bestIdx = idx
+			# walks through every n offsprings of each parent
+			while idx < generatedOffspring * (i + 1):
+				# Picks the best offspring
+				if constraintHandling is None: # Bound constrained problems
 					if offsprings.individuals[idx].objectiveFunction[0] < offsprings.individuals[bestIdx].objectiveFunction[0]:
 						bestIdx = idx
-					idx+=1
-				# Best offsprings better than parent, he becomes the parent
-				if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
-					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-		elif constraintHandling == 1: # Deb
-			idx = 0
-			for i in range(len(self.individuals)): # Parents size
-				bestIdx = idx
-				# walks through every n offsprings of each parent
-				while idx < generatedOffspring * (i + 1):
-					# Picks the best offspring
+				elif constraintHandling is 1: # Deb
 					if offsprings.individuals[idx].violationSum < offsprings.individuals[bestIdx].violationSum:
 						bestIdx = idx
 					elif offsprings.individuals[idx].violationSum == offsprings.individuals[bestIdx].violationSum:
 						if offsprings.individuals[idx].objectiveFunction[0] < offsprings.individuals[bestIdx].objectiveFunction[0]:
 							bestIdx = idx
-					idx+=1
-				# Best offsprings better than parent, he becomes the parent
-				if offsprings.individuals[bestIdx].violationSum < self.individuals[i].violationSum:
-					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-				elif offsprings.individuals[bestIdx].violationSum == self.individuals[i].violationSum:
-					if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
-						self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-		elif constraintHandling == 2: # APM
-			idx = 0
-			for i in range(len(self.individuals)): # Parents size
-				bestIdx = idx
-				# walks through every n offsprings of each parent
-				while idx < generatedOffspring * (i + 1):
-					# Picks the best offspring
+				elif constraintHandling is 2: # APM
 					if offsprings.individuals[idx].fitness < offsprings.individuals[bestIdx].fitness:
 						bestIdx = idx
 					elif offsprings.individuals[idx].fitness == offsprings.individuals[bestIdx].fitness:
 						if offsprings.individuals[idx].objectiveFunction[0] < offsprings.individuals[bestIdx].objectiveFunction[0]:
 							bestIdx = idx
-					idx+=1
-				# Best offsprings better than parent, he becomes the parent
+				else:
+					sys.exit("Constraint handling method not defined.")
+				idx+=1
+
+			# Best offsprings better than parent, he becomes the parent
+			if constraintHandling is None: # Bound constrained problems
+				if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
+					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
+			elif constraintHandling is 1: # Deb
+				if offsprings.individuals[bestIdx].violationSum < self.individuals[i].violationSum:
+					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
+				elif offsprings.individuals[bestIdx].violationSum == self.individuals[i].violationSum:
+					if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
+						self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
+			elif constraintHandling is 2: # APM
 				if offsprings.individuals[bestIdx].fitness < self.individuals[i].fitness:
 					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
 				elif offsprings.individuals[bestIdx].fitness == self.individuals[i].fitness:
 					if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
 						self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-		else:
-			sys.exit("Constraint handling not defined.")
-
-	def selectCMAES(self, offsprings, hasConstraints):
-		if hasConstraints:
-			sys.exit("Not implemented.")
-		else:
-			parentsSize = len(self.individuals)
-			offspringsSize = len(offsprings.individuals)
-			popSize = parentsSize + offspringsSize
-			population = Population(len(self.individuals[0].n), popSize, 31, 1)
-			for i in range(parentsSize + offspringsSize):
-				if i < parentsSize:
-					population.individuals[i] = deepcopy(self.individuals[i])
-				else:
-					population.individuals[i] = deepcopy(offsprings.individuals[i-parentsSize])
-
-			population.sort(None)
-			for i in range(parentsSize):
-				self.individuals[i] = deepcopy(population.individuals[i])
 
 	def checkBounds(self, function, lowerBound, upperBound):
 		strFunction = str(function)
@@ -249,6 +213,42 @@ class Population(object):
 	def bestIndividual(self, constraintHandling):
 		# Assume the first individual is the best one
 		best = deepcopy(self.individuals[0])
+		for individual in self.individuals:
+			if constraintHandling is None: # Bound constrained problems
+				if individual.objectiveFunction[0] < best.objectiveFunction[0]:
+					best = deepcopy(individual)
+			elif constraintHandling == 1: # Deb
+				if individual.violationSum < best.violationSum:
+					best = deepcopy(individual)
+				elif individual.violationSum == best.violationSum:
+					if individual.objectiveFunction[0] < best.objectiveFunction[0]:
+						best = deepcopy(individual)
+			elif constraintHandling == 2: # APM
+				bothViolates = individualViolates(individual, constraintHandling) and individualViolates(best, constraintHandling) # Both violates
+				neitherViolates = not individualViolates(individual, constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
+				if bothViolates or neitherViolates:
+					if individual.fitness < best.fitness:
+						best = deepcopy(individual)
+					elif individual.fitness == best.fitness:
+						if individual.objectiveFunction[0] < best.objectiveFunction[0]:
+							best = deepcopy(individual)
+				elif individualViolates(best, constraintHandling): # Best violates
+					best = deepcopy(individual)
+			else:
+				sys.exit("Constraint handling method not defined.")
+
+			# elif constraintHandling == 2: # APM
+			# 	if self.individuals[i].fitness < best.fitness:
+			# 		best = deepcopy(self.individuals[i])
+			# 	elif self.individuals[i].fitness == best.fitness:
+			# 		if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
+			# 			best = deepcopy(self.individuals[i])
+
+		return best
+
+	def bestIndividualDeprecated(self, constraintHandling):
+		# Assume the first individual is the best one
+		best = deepcopy(self.individuals[0])
 		for i in range(1, len(self.individuals)):
 			if constraintHandling == 1: # Deb
 				if self.individuals[i].violationSum < best.violationSum:
@@ -257,11 +257,23 @@ class Population(object):
 					if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
 						best = deepcopy(self.individuals[i])
 			elif constraintHandling == 2: # APM
-				if self.individuals[i].fitness < best.fitness:
-					best = deepcopy(self.individuals[i])
-				elif self.individuals[i].fitness == best.fitness:
-					if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
+				bothViolates = individualViolates(self.individuals[i], constraintHandling) and individualViolates(best, constraintHandling) # Both violates
+				neitherViolates = not individualViolates(self.individuals[i], constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
+				if bothViolates or neitherViolates:
+					if self.individuals[i].fitness < best.fitness:
 						best = deepcopy(self.individuals[i])
+					elif self.individuals[i].fitness == best.fitness:
+						if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
+							best = deepcopy(self.individuals[i])
+				elif individualViolates(best, constraintHandling): # Best violates
+					best = deepcopy(self.individuals[i])
+
+			# elif constraintHandling == 2: # APM
+			# 	if self.individuals[i].fitness < best.fitness:
+			# 		best = deepcopy(self.individuals[i])
+			# 	elif self.individuals[i].fitness == best.fitness:
+			# 		if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
+			# 			best = deepcopy(self.individuals[i])
 			else:
 				if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
 					best = deepcopy(self.individuals[i])
@@ -269,21 +281,37 @@ class Population(object):
 
 	def hallOfFame(self, hof, constraintHandling):
 		currentBest = self.bestIndividual(constraintHandling)
-		if constraintHandling == 1: # Deb
-			if hof is None or currentBest.violationSum < hof.violationSum:
+		if hof is None:
+			hof = deepcopy(currentBest)
+		if constraintHandling is None: # Bound constrained problems
+			if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
 				hof = deepcopy(currentBest)
-			elif hof is None or currentBest.violationSum == hof.violationSum:
-				if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+		elif constraintHandling == 1: # Deb
+			if currentBest.violationSum < hof.violationSum:
+				hof = deepcopy(currentBest)
+			elif currentBest.violationSum == hof.violationSum:
+				if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
 					hof = deepcopy(currentBest)
 		elif constraintHandling == 2: # APM
-			if hof is None or currentBest.fitness < hof.fitness:
-				hof = deepcopy(currentBest)
-			elif hof is None or currentBest.fitness == hof.fitness:
-				if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+			bothViolates = individualViolates(currentBest, constraintHandling) and individualViolates(hof, constraintHandling) # Both violates
+			neitherViolates = not individualViolates(currentBest, constraintHandling) and not individualViolates(hof, constraintHandling) # Neither violates
+			if bothViolates or neitherViolates:
+				if currentBest.fitness < hof.fitness:
 					hof = deepcopy(currentBest)
-		else:
-			if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+				elif currentBest.fitness == hof.fitness:
+					if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+						hof = deepcopy(currentBest)
+			elif individualViolates(hof, constraintHandling): # Hof violates
 				hof = deepcopy(currentBest)
+		else:
+			sys.exit("Constraint handling method not defined.")
+
+			# if hof is None or currentBest.fitness < hof.fitness:
+			# 	hof = deepcopy(currentBest)
+			# elif hof is None or currentBest.fitness == hof.fitness:
+			# 	if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+			# 		hof = deepcopy(currentBest)
+
 		return hof
 
 	def uniteConstraints(self, constraintHandling):
@@ -303,7 +331,7 @@ class Population(object):
 						individual.violations[i] = np.abs(individual.h[idxH]) - 0.0001
 					idxH+=1
 			if constraintHandling == 1: # Deb
-				# Only sums positives values. Negative violations aren't summed
+				# Only sums positives values
 				individual.violationSum = np.sum(value for value in individual.violations if value > 0)
 
 	def calculatePenaltyCoefficients(self, numberOfConstraints, penaltyCoefficients, averageObjectiveFunctionValues):
@@ -370,19 +398,9 @@ class Population(object):
 			population.calculateAllFitness(constraintsSize, penaltyCoefficients, avgObjFunc)
 		return avgObjFunc
 
-	def printBest(self, boolObjFunc, boolN, constraintHandling):
-		best = self.bestIndividual(constraintHandling)
-		best.printIndividual(boolObjFunc, boolN, constraintHandling)
-		# if boolObjFunc:
-		# 	print("{:}\t".format(best.objectiveFunction[0]), end=" ")
-		# if boolN:
-		# 	for n in best.n:
-		# 		print("{}\t".format(n), end=" ")
-		print()
-
 	def moveArzToPop(self, list2d):
-		for i in range(len(self.individuals)): # Lambda_
-			self.individuals[i].n = deepcopy(list2d[i])
+		for index, individual in enumerate(self.individuals):
+			individual.n = deepcopy(list2d[index])
 
 	def selectMuIndividuals(self, mu):
 		population = []
@@ -424,18 +442,18 @@ class Population(object):
 
 		# Cumulation : update evolution paths
 		ps = (1 - cs) * ps \
-				+ sqrt(cs * (2 - cs) * mueff) / sigma \
+				+ np.sqrt(cs * (2 - cs) * mueff) / sigma \
 				* np.dot(B, (1. / diagD) *
 										np.dot(B.T, c_diff))
 
 		hsig = float((np.linalg.norm(ps) /
-									sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
+									np.sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
 									(1.4 + 2. / (nSize + 1.))))
 
 		update_count += 1
 
 		pc = (1 - cc) * pc + hsig \
-				* sqrt(cc * (2 - cc) * mueff) / sigma \
+				* np.sqrt(cc * (2 - cc) * mueff) / sigma \
 				* c_diff
 
 		# Update covariance matrix
@@ -460,7 +478,7 @@ class Population(object):
 		BD = B * diagD
 		return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
 
-	# Makes print(population) a string, not a reference (memory adress)
+# Print(population) is shown as string and not memory reference
 	def __repr__(self):
 		return str(self.__dict__) + "\n"
 
@@ -489,6 +507,17 @@ def initiliazeHandleConstraintsParams(function):
 		avgObjFunc = -1
 		return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
 
+def individualViolates(individual, constraintHandling):
+	if constraintHandling == 1: # Deb
+		if individual.violationSum == 0:
+			return False
+	elif constraintHandling == 2: # APM
+		if individual.objectiveFunction[0] == individual.fitness:
+			return False
+	else:
+		sys.exit("Constriaint handling method not defined.")
+	return True
+
 def constraintsInitParams (function, constraintHandling):
 	if constraintHandling is not None:
 		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = initiliazeHandleConstraintsParams(function)
@@ -500,7 +529,7 @@ def constraintsInitParams (function, constraintHandling):
 def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	# User defined params
 	if parentsSize is None:
-		parentsSize = int(4 + 3 * log(nSize)) # Population size
+		parentsSize = int(4 + 3 * np.log(nSize)) # Population size
 	if centroid is None:
 		centroid = np.array([5.0]*nSize) # objective variables initial points
 	if sigma is None:
@@ -513,7 +542,7 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	# Initiliaze dynamic (internal) strategy parameters and constants
 	pc = np.zeros(nSize) # evolution paths for C
 	ps = np.zeros(nSize) # evolutions paths for sigma
-	chiN = sqrt(nSize) * (1 - 1. / (4. * nSize) + 1. / (21. * nSize ** 2)) # expectation of ||N(0,I)|| == norm(randn(N,1))
+	chiN = np.sqrt(nSize) * (1 - 1. / (4. * nSize) + 1. / (21. * nSize ** 2)) # expectation of ||N(0,I)|| == norm(randn(N,1))
 	C = np.identity(nSize) # covariance matrix
 	diagD, B = np.linalg.eigh(C) # 
 	indx = np.argsort(diagD) # return the indexes that would sort an array
@@ -525,13 +554,13 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 
 	# Strategy parameter setting: Selection
 	if rweights == "superlinear":
-		weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1))
+		weights = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1))
 	elif rweights == "linear":
-		weights = log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # muXone recombination weights
+		weights = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # muXone recombination weights
 	elif rweights == "equal":
 		weights = np.ones(mu)
-	weights /= sum(weights) # normalize recombination weights array
-	mueff = 1. / sum(weights **2) # vriance-effective size of mu
+	weights /= np.sum(weights) # normalize recombination weights array
+	mueff = 1. / np.sum(weights **2) # vriance-effective size of mu
 
 	# Strategy parameter setting: Adaptation
 	cc = 4. / (nSize + 4.) # time constant for cumulation for C
@@ -539,7 +568,7 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
 	ccov1 = 2. / ((nSize + 1.3) ** 2 + mueff) # learning rate for rank one update of C
 	ccovmu = 2. * (mueff - 2. + 1. / mueff) / ((nSize + 2.) ** 2 + mueff) # and for rank-mu update
 	ccovmu = min(1 - ccov1, ccovmu)
-	damps = 1. + 2. * max(0, sqrt((mueff - 1.) / (nSize + 1.)) - 1.) + cs # # damping for sigma
+	damps = 1. + 2. * max(0, np.sqrt((mueff - 1.) / (nSize + 1.)) - 1.) + cs # # damping for sigma
 
 	return parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
 
@@ -547,10 +576,8 @@ def deInitParams(function, parentsSize, offspringsSize):
 	# Define DE parameters
 	CR = 0.9
 	F = 0.6
-	feval = 0
-	hof = None
 	generatedOffspring = int(offspringsSize / parentsSize)
-	return CR, F, feval, hof, generatedOffspring
+	return CR, F, generatedOffspring
 
 # Python function to pass values of a python list to a C++ (swig) array
 def populateArray(a, l, startIdx, size):
@@ -581,7 +608,7 @@ def defineMaxEval(function, nSize):
 		elif (nSize == 20):
 			maxFe = 10000000
 		else:
-			sys.exit("Dimension not defined for cec2020 bounded constrained functions")
+			sys.exit("Dimension not defined for cec2020 bound constrained functions.")
 	else:
 		sys.exit("Function not defined.")
 
@@ -612,14 +639,19 @@ def initializeConstraints(function):
 def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
 	np.random.seed(seed)
 	strFunction = str(function)
+	feval = 0
+	hof = None
+
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
 
 	if strFunction[0] != "1": # Bound constrained problems
 		constraintHandling = None
 
-	CR, F, feval, hof, generatedOffspring = deInitParams(function, parentsSize, offspringsSize)
-	# Constraints handling
+	# Initialize differential evolution parameters
+	CR, F, generatedOffspring = deInitParams(function, parentsSize, offspringsSize)
+
+	# Initialize truss constraints, if necessary
 	if constraintHandling:
 		gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
 	else:
@@ -629,6 +661,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 	parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 	offsprings = Population(nSize, offspringsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 	feval = parents.evaluate(function, feval, truss)
+
 	# Constraints handling
 	if constraintHandling:
 		avgObjFunc = parents.handleConstraints(None, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
@@ -649,197 +682,29 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 		if constraintHandling:
 			avgObjFunc = offsprings.handleConstraints(parents, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
 
-		# Selects best offsprings and put them in parents
-		parents.selectDE(offsprings, generatedOffspring, constraintHandling)
+		# Selects best offsprings and move them into parents
+		parents.deSelect(offsprings, generatedOffspring, constraintHandling)
 
 		# Gets hall of fame individual
 		hof = parents.hallOfFame(hof, constraintHandling)
 	
-	# Prints the best individual of the generation and hall of fame
-	parents.printBest(True, False, constraintHandling)
+	# Prints the best individual from last generation and hall of fame
+	# parents.printBest(True, False, constraintHandling)
 	hof.printIndividual(True, False, constraintHandling)
 
-
-def CMAESOld(function, nSize, parentsSize, offspringsSize, seed, maxFe):
-	np.random.seed(seed)
-	strFunction = str(function)
-	hasConstraints = False
-	if strFunction[0] == "3": # cec2020 bound constrained
-		maxFe = defineMaxEval(function, nSize)
-
-	feval = 0
-	generatedOffspring = int(offspringsSize / parentsSize)
-
-	# User defined parameters
-	sigma = 0.5 # coordinate wise standard deviation (step-size)
-	xmean = np.random.randn(nSize)  # objective variables initial point
-
-	# λ ≥ 2, population size, sample size, number of offspring, see (5).
-	# µ ≤ λ parent number, number of (positively) selected search points in the population, number of strictly positive recombination weights, see (6).
-	
-	# λ = tamanho da populacao
-	# µ = filhos escolhidos
-
-	# # Strategy parameters setting: Selection
-	parentsSize = 4 + np.floor(3 * np.log(nSize))  # population size (λ), offsprings number (same as parents)
-	parentsSize = int(parentsSize)
-	# parentsSize = nSize * 4 # population size, offsprings number (same as parents)
-	offspringsSize = 4 * parentsSize 
-
-
-
-	if hasConstraints:
-		sys.exit("Not implemented.")
-	else:
-		parents = Population(nSize, parentsSize, function, 1)
-		offsprings = Population(nSize, offspringsSize, function, 1)
-		feval = parents.evaluate(function, feval)
-
-	# Strategy parameters setting: Selection
-
-	# mu = µ = offspringsSize
-
-	mu = parentsSize / 2   # number of parents selected (selected search points in the population)
-	muList = [i + 1 for i in range(int(mu))]
-	weights = np.log(mu+1/2)-np.log(muList).conj().T  # muXone recombination weights
-	mu = np.floor(mu) # number of parents selected (µ)(selected search points in the population)
-	weights = weights/np.sum(weights) # normalize recombination weights array
-	mueff = np.power(np.sum(weights), 2) / np.sum(np.power(weights, 2)) # variance-effective size of mu
-
-	# Strategy parameter setting: Adaptation
-	cc = (4+mueff / nSize) / (nSize+4 + 2*mueff/nSize) # time constant for cumulation for C
-	cs = (mueff+2) / (nSize+mueff+5)  # t-const for cumulation for sigma control
-	c1 = 2 / (np.power(nSize + 1.3, 2) + mueff)  # learning rate for rank one update of C
-	cmu = np.minimum(1 - c1, 2 * (mueff - 2 + 1/mueff)/(np.power(nSize+2, 2) + 2*mueff/2))  # and for rank-mu update
-	damps = 1 + 2*np.maximum(0, np.sqrt((mueff -1) / (nSize + 1)) -1 ) + cs  # damping for sigma
-
-	# Initiliaze dynamic (internal) strategy parameters and constants
-	pc = np.zeros(nSize) # evolutions paths for C
-	ps = np.zeros(nSize)  # evolutions paths for sigma
-	B = np.eye(nSize)  # B defines de coordinate system
-	D = np.eye(nSize)  # diagonal matrix D defines the scaling
-	C = B @ D @ (B@D).conj().T # covariance matrix
-	eigenval = 0  # B and D update at counteval == 0
-	chinN = nSize**(0.5) * (1-1/(4*nSize)+1 / (21*np.power(nSize, 2)))  # expectation of ||N(0,I)|| == norm(randn(N,1))
-
-
-	hof = None
-
-	deg = 0
-	while feval < maxFe:
-		arzAuxList = []
-		arxAuxList = []
-		for i in range(offspringsSize):
-			arz = np.random.randn(nSize)  # standard normally distributed vector  (38)
-			# print("Arz: {}".format(arz))
-			arx = xmean + sigma * (B @ D @ arz)  # add mutation N(m,sigma²C) (40)
-			arzAuxList.append(arz)
-			arxAuxList.append(arx)
-			for j in range(nSize):  # Copies arx to individual[].n TODO This can be done as offsprings.individuals[k].n = [i for i in arx] ?!
-				offsprings.individuals[i].arz[j] = arz[j]
-				offsprings.individuals[i].n[j] = arx[j]
-				complexx = np.iscomplexobj(offsprings.individuals[i].n)
-		
-		if complexx:
-			hof.printIndividual(True, False)
-			sys.exit("Complex number in individual.")
-		
-		arz = np.stack(arzAuxList)
-		arx = np.stack(arxAuxList)
-
-		# Check bounds and evaluate offsprings
-		offsprings.checkBounds(function)
-		feval = offsprings.evaluate(function, feval)
-
-		# parents.sort(offsprings)
-		if hasConstraints:
-			sys.exit("Not implemented.")
-		else:
-			# Picks best individuals among parents and offsprings and put it on parents
-			parents.selectCMAES(offsprings, False)
-		
-		arz = arz.T
-		arx = arx.T
-
-		for j in range(parentsSize):
-			for i in range(nSize):
-				arx[i][j] = parents.individuals[j].n[i]
-				arz[i][j] = parents.individuals[j].arz[i] 
-
-		# Individuals already stored in columns, no need to tranpose
-		muBestX = np.delete(arx, np.s_[int(mu):], 1)  # Remove columns after mu index (Select mu individuals)
-		muBestZ = np.delete(arz, np.s_[int(mu):], 1)  # Remove columns after mu index (Select mu individuals)
-		xmean = np.matmul(muBestX, weights)  # xmean is one array with nSize positions. Recombination Eq. 42
-		zmean = np.matmul(muBestZ, weights)  # zmeanis one array with nSize positions. == Dˆ-1*B’*(xmean-xold)/sigma
-
-		# Cumulation: Updatte evolution paths
-		ps = (1-cs)*ps + (np.sqrt(cs*(2-cs)*mueff)) * B@zmean  # Eq. 43
-		hsig = True if np.linalg.norm(ps) / np.sqrt(1-np.power((1-cs), (2*feval/parentsSize)))/chinN < 1.4 + 2/(nSize + 1) else False
-		pc = (1-cc)*pc + hsig * np.sqrt(cc*(2-cc)*mueff) * B@D@zmean # Eq. 45
-		
-		# Adapt covariance matrix C. Eq. 47
-		# C = (1-c1-cmu) * C + c1 * (np.outer(pc, pc) + (1-hsig) * cc*(2-cc) * C) + cmu * (B@D@muBestZ) @ np.diag(weights) @ (B@D@muBestZ).conj().T # Eq. 47
-		C = ((1-c1-cmu) * C + # regard old matrix
-			c1 * (np.outer(pc, pc) + # plus rank on update
-			(1-hsig) * cc*(2-cc) * C) + # minor correction
-			cmu *  # plus rank mu update
-			(B@D@muBestZ) @ np.diag(weights) @ (B@D@muBestZ).conj().T)
-
-
-		#  Adapt step-size sigma
-		sigma = sigma * np.exp((cs/damps) * (np.linalg.norm(ps)/chinN - 1)) # Eq. 44
-
-		# Gets the hall of fame individual
-		if (hof is None):
-			hof = parents.bestIndividual()
-		else:
-			bestFromActualGen = parents.bestIndividual()
-			if bestFromActualGen.objectiveFunction[0] < hof.objectiveFunction[0]:
-				hof = deepcopy(bestFromActualGen)
-
-		if feval - eigenval > parentsSize / (c1 + cmu) / nSize / 10:  # to achieve 0(N^2)
-			eigenval = feval
-
-			C = np.triu(C) + np.triu(C, 1).conj().T  # enforce symmetry
-			D, B = np.linalg.eig(C)  # eigen decomposition, B == normalized eigenvector 
-
-		if(np.any(D<=0)): # degenerates
-			deg = deg + 1
-			print("Degenerou {} vezes".format(deg))
-
-			# User defined parameters
-			sigma = 0.5 # coordinate wise standard deviation (step-size)
-			xmean = np.random.randn(nSize)  # objective variables initial point
-
-			# Strategy parameter setting: Adaptation
-			cc = (4+mueff / nSize) / (nSize+4 + 2*mueff/nSize) # time constant for cumulation for C
-			cs = (mueff+2) / (nSize+mueff+5)  # t-const for cumulation for sigma control
-			c1 = 2 / (np.power(nSize + 1.3, 2) + mueff)  # learning rate for rank one update of C
-			cmu = np.minimum(1 - c1, 2 * (mueff - 2 + 1/mueff)/(np.power(nSize+2, 2) + 2*mueff/2))  # and for rank-mu update
-			damps = 1 + 2*np.maximum(0, np.sqrt((mueff -1) / (nSize + 1)) -1 ) + cs  # damping for sigma
-
-			# Initiliaze dynamic (internal) strategy parameters and constants
-			pc = np.zeros(nSize) # evolutions paths for C
-			ps = np.zeros(nSize)  # evolutions paths for sigma
-			B = np.eye(nSize)  # B defines de coordinate system
-			D = np.eye(nSize)  # diagonal matrix D defines the scaling
-			C = B @ D @ (B@D).conj().T # covariance matrix
-			# eigenval = 0  # B and D update at counteval == 0 # TODO Verify is eigenval need to be 0 again.
-			chinN = nSize**(0.5) * (1-1/(4*nSize)+1 / (21*np.power(nSize, 2)))  # expectation of ||N(0,I)|| == norm(randn(N,1))
-		else:
-			D = np.diag(np.sqrt(D)) # D containts standard deviations now
-	hof.printIndividual(True, False)
-
+# CMA ES
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
 	np.random.seed(seed)
 	strFunction = str(function)
+	feval = 0
+	hof = None
+
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
 
 	if strFunction[0] != "1": # Bound constrained problems
 		constraintHandling = None
 
-	feval = 0
 	# User defined params (if set to None, uses default)
 	parentsSize = centroid = sigma = mu = rweights = None
 	rweights = "equal"
@@ -852,8 +717,8 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 	# Initialize all cmaes params
 	parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
 
+	# Generate initial population
 	parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
-	hof = None
 
 
 	# CMAESrweights=equal+DEB: T10: 5061.970157299801 | T25: 484.05229151214365 | T60: 311.6048214519769 | T72: 380.0802294286406  
@@ -863,18 +728,18 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 	while feval < maxFe:
 		# Generate new population
 		parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
-		
+		# Check bounds and evaluate
 		parents.checkBounds(function, lowerBound, upperBound)
-
-		# Evaluate and sort
 		feval = parents.evaluate(function, feval, truss)
 
 		# Handling constraints, if necessary
 		if constraintHandling:
 			avgObjFunc = parents.handleConstraints(None, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
 	
+		# Sorts population
 		parents.sort(None, constraintHandling)
-		# Gets the 'hall of fame" individual
+
+		# Gets hall of fame individual
 		hof = parents.hallOfFame(hof, constraintHandling)
 
 		# Update covariance matrix strategy from the population
@@ -882,7 +747,10 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 			parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
 			ps, B, diagD, C, update_count, chiN, BD
 		)
+
+		# Prints best individual of current generation
 		parents.printBest(True, False, constraintHandling)
 
+	# Prints the best individual from last generation and hall of fame
 	parents.printBest(True, False, constraintHandling)
 	hof.printIndividual(True, True, constraintHandling)
