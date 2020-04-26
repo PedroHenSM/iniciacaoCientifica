@@ -14,7 +14,8 @@ using namespace std;
 
 namespace problem {
 
-    F101Truss10Bar::F101Truss10Bar(): TrussBarStructureStaticProblem(10, NULL, 280000, 1, 18, 10, 0.1, 25000, 2, "input10.dat", 0.1, 40) {
+    // F101Truss10Bar::F101Truss10Bar(): TrussBarStructureStaticProblem(10, NULL, 280000, 1, 18, 10, 0.1, 25000, 2, "input10.dat", 0.1, 40) { // original line
+    F101Truss10Bar::F101Truss10Bar(): TrussBarStructureStaticProblem(10, NULL, 280000, 1, 18, 10, 0.1, 25000, 2, "../functions/eureka/input_data/input10.dat", 0.1, 40) {
         
     }
 

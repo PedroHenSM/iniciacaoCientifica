@@ -13,7 +13,8 @@ using namespace std;
 
 namespace problem {
 
-    F107Truss72Bar::F107Truss72Bar(): TrussBarStructureStaticProblem(16, NULL, 35000, 1, 168, 72, 0.1, 25000, 0.25, "input72.dat", 0.1, 2.5), grouping(NULL) {
+    // F107Truss72Bar::F107Truss72Bar(): TrussBarStructureStaticProblem(16, NULL, 35000, 1, 168, 72, 0.1, 25000, 0.25, "input72.dat", 0.1, 2.5), grouping(NULL) { // original line
+    F107Truss72Bar::F107Truss72Bar(): TrussBarStructureStaticProblem(16, NULL, 35000, 1, 168, 72, 0.1, 25000, 0.25, "../functions/eureka/input_data/input72.dat", 0.1, 2.5), grouping(NULL) {
         
     }
 

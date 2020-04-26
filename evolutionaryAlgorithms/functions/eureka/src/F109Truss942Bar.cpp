@@ -12,7 +12,8 @@ using namespace std;
 
 namespace problem {
 
-    F109Truss942Bar::F109Truss942Bar(): TrussBarStructureStaticProblem(59, NULL, 150000, 1, 954/*696+942?*/, 942, 0.1, 25000, 15, "input942.dat", 1, 200), grouping(NULL) {
+    // F109Truss942Bar::F109Truss942Bar(): TrussBarStructureStaticProblem(59, NULL, 150000, 1, 954/*696+942?*/, 942, 0.1, 25000, 15, "input942.dat", 1, 200), grouping(NULL) { // original line
+    F109Truss942Bar::F109Truss942Bar(): TrussBarStructureStaticProblem(59, NULL, 150000, 1, 954/*696+942?*/, 942, 0.1, 25000, 15, "../functions/eureka/input_data/input942.dat", 1, 200), grouping(NULL) {
         
     }
 

@@ -15,7 +15,8 @@ using namespace std;
 
 namespace problem {
 
-    F103Truss25Bar::F103Truss25Bar(): TrussBarStructureStaticProblem(8, NULL, 240000, 1, 29, 25,  0.1, 40000, 0.35, "input25.dat", 0.1, 3.4), grouping(NULL) {
+    // F103Truss25Bar::F103Truss25Bar(): TrussBarStructureStaticProblem(8, NULL, 240000, 1, 29, 25,  0.1, 40000, 0.35, "input25.dat", 0.1, 3.4), grouping(NULL) { // original line
+    F103Truss25Bar::F103Truss25Bar(): TrussBarStructureStaticProblem(8, NULL, 240000, 1, 29, 25,  0.1, 40000, 0.35, "../functions/eureka/input_data/input25.dat", 0.1, 3.4), grouping(NULL) {
         
     }
 

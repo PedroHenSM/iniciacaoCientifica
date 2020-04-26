@@ -15,7 +15,8 @@ using namespace std;
 
 namespace problem {
 
-    F105Truss60Bar::F105Truss60Bar(): TrussBarStructureStaticProblem(25, NULL, 150000, 1, 198, 60, 0.1, 10000, 1.75, "input60.dat", 0.5, 5), grouping(NULL) {
+    // F105Truss60Bar::F105Truss60Bar(): TrussBarStructureStaticProblem(25, NULL, 150000, 1, 198, 60, 0.1, 10000, 1.75, "input60.dat", 0.5, 5), grouping(NULL) { // original line
+    F105Truss60Bar::F105Truss60Bar(): TrussBarStructureStaticProblem(25, NULL, 150000, 1, 198, 60, 0.1, 10000, 1.75, "../functions/eureka/input_data/input60.dat", 0.5, 5), grouping(NULL) {
 		this->displacementConstraint2 = 2.25;
 		this->displacementConstraint3 = 2.75;
     }
