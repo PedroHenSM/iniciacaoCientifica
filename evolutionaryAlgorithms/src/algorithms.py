@@ -17,6 +17,7 @@ import cec2020BoundConstrained
 import eureka
 import simpleFunctions as Functions
 import numpy as np
+import timeit
 import operator as op # For sorting population
 from copy import deepcopy
 
@@ -30,18 +31,21 @@ class Individual(object):
 		self.violationSum = violationSum
 		self.fitness = fitness
 
-	def printIndividual(self, boolObjFunc, boolN, constraintHandling):
+	def printIndividual(self, boolObjFunc, constraintHandling, boolN):
 		if boolObjFunc:
-			print("{:}\t".format(self.objectiveFunction[0]), end=" ")
-		if boolN:
-			for n in self.n:
-				print("{}\t".format(n), end=" ")
+			print("{}".format(self.objectiveFunction[0]), end=" ")
 		if constraintHandling is not None:
 			if constraintHandling == 1: # Deb
-				print("{}\t".format(self.violationSum))
+				print("{}".format(self.violationSum), end=" ")
+				# print("Violationsum", end="\t")
 			elif constraintHandling == 2: # APM
-				print("{}\t".format(self.fitness))
-		print()
+				print("{}".format(self.fitness), end=" ")
+				# print("Fitness", end="\t")
+		if boolN:
+			print(*self.n, sep=" ")
+			# for n in self.n:
+			# 	print("{}".format(n), end=" ")
+		# print()
 
 	# Makes print(individual) a string, not a reference (memory adress)
 	def __repr__(self):
@@ -67,20 +71,20 @@ class Population(object):
 					sys.exit("Function not defined.")
 			self.individuals.append(Individual(n, objFunc, g, h, violations, violationSum))
 
-	def printPopulation(self, boolObjFunc, boolN, constraintHandling):
+	def printPopulation(self, boolObjFunc, constraintHandling, boolN):
 		for individual in self.individuals:
 			if boolObjFunc:
 				print(individual.objectiveFunction)
-			if boolN:
-				print(individual.n)
 			if constraintHandling:
 				if constraintHandling == 1: # Deb
 					print(individual.violationSum)
 				if constraintHandling == 2: # APM
 					print(individual.fitness)
+			if boolN:
+				print(individual.n)
 		print()
 
-	def printBest(self, boolObjFunc, boolN, constraintHandling):
+	def printBest(self, boolObjFunc, constraintHandling, boolN):
 		best = self.bestIndividual(constraintHandling)
 		best.printIndividual(boolObjFunc, boolN, constraintHandling)
 
@@ -482,6 +486,34 @@ class Population(object):
 	def __repr__(self):
 		return str(self.__dict__) + "\n"
 
+def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, parentsSize, offspringsSize, maxFe, CR, F, rweights):
+	feasibiliyMeasure = "-"
+	if constraintHandling is None:
+		pass
+	elif constraintHandling == 1: # Deb
+		feasibiliyMeasure = "ViolationSum"
+	elif constraintHandling == 2: # APM
+		feasibiliyMeasure = "Fitness"
+	else:
+		sys.exit("Constraint handling method not defined.")
+	print("Algorithm: {}".format(algorithm))
+	print("Constrainth handling method: {}".format(constraintHandling))
+	print("Function: {}".format(function))
+	print("Seed: {}".format(seed))
+	print("Parents size: {}".format(parentsSize))
+	print("Offsprings size: {}".format(offspringsSize))
+	print("maxFe: {}".format(maxFe))
+	print("CR: {}".format(CR))
+	print("F: {}".format(F))
+	print("rweights: {}".format(rweights))
+	print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
+	print("ngen ObjectiveFunction {} ProjectVariables".format(feasibiliyMeasure))
+
+def printFinalPopulationInfo(status):
+	print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
+	print("Status: {}".format(status))
+	print("Hall of Fame")
+
 def initializeTruss(function):
 	if function == 110:  # Truss 10 bars
 		truss = eureka.F101Truss10Bar()
@@ -641,6 +673,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 	strFunction = str(function)
 	feval = 0
 	hof = None
+	status = "Initializing"
 
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
@@ -668,9 +701,13 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 
 	# DE+DEB: T10: 5071.401883658249 | T25: 484.0522202840531 | T60: 428.33801862127643 | T72: 391.41071625298974 
 	# DE+APM: T10: 5067.045222753923 | T25: 484.065205988603 | T60: 425.8179547877767 | T72: 383.963083800768
+	printInitialPopulationInfo("Differential Evolution", constraintHandling, function, seed, parentsSize, offspringsSize, maxFe, CR, F, "-")
+
 	if feval > maxFe:
 		sys.exit("Maximum number of function evaluations too low.")
 	while feval < maxFe:
+		status = "Executing"
+		print(feval, end=" ")
 		# Generate new population
 		parents.deGeneratePopulation(offsprings, generatedOffspring, CR, F)
 
@@ -687,10 +724,15 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 
 		# Gets hall of fame individual
 		hof = parents.hallOfFame(hof, constraintHandling)
-	
+		
+		# Prints best individual of current generation
+		parents.printBest(True, constraintHandling, True)
+	status = "Finished"
+	print("Final individual")
+	parents.printBest(True, constraintHandling, True)
+	printFinalPopulationInfo(status)
 	# Prints the best individual from last generation and hall of fame
-	# parents.printBest(True, False, constraintHandling)
-	hof.printIndividual(True, False, constraintHandling)
+	hof.printIndividual(True, constraintHandling, True)
 
 # CMA ES
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
@@ -698,6 +740,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 	strFunction = str(function)
 	feval = 0
 	hof = None
+	status="Initializing"
 
 	if strFunction[0] == "3": # cec2020 bound constrained
 		maxFe = defineMaxEval(function, nSize)
@@ -723,9 +766,13 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
 	# CMAESrweights=equal+DEB: T10: 5061.970157299801 | T25: 484.05229151214365 | T60: 311.6048214519769 | T72: 380.0802294286406  
 	# CMAES+APM: T10: 5062 | T25: 484 | T60: 313 | T72: 380
+	printInitialPopulationInfo("CMA-ES", constraintHandling, function, seed, parentsSize, mu, maxFe, "-", "-", rweights)
+
 	if feval > maxFe:
 		sys.exit("Maximum number of function evaluations too low.")
 	while feval < maxFe:
+		status = "Executing"
+		print(feval, end=" ")
 		# Generate new population
 		parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
 		# Check bounds and evaluate
@@ -749,8 +796,10 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 		)
 
 		# Prints best individual of current generation
-		parents.printBest(True, False, constraintHandling)
-
+		parents.printBest(True, constraintHandling, True)
+	status = "Finished"
 	# Prints the best individual from last generation and hall of fame
-	parents.printBest(True, False, constraintHandling)
-	hof.printIndividual(True, True, constraintHandling)
+	print("Final individual")
+	parents.printBest(True, constraintHandling, True)
+	printFinalPopulationInfo(status)
+	hof.printIndividual(True, constraintHandling, True)
