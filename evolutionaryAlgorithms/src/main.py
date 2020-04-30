@@ -4,17 +4,29 @@ import argparse
 
 
 import numpy as np
+import timeit
 from math import sqrt, log, exp
 
 def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
 	if algorithm == "GA":
 		sys.exit("Not implemented.")
 	elif algorithm == "DE":
+		startTime = timeit.default_timer()
 		algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
+		endTime = timeit.default_timer()
+		elapsedTime = endTime - startTime
+		print("CPU time used (seconds)\n{}".format(elapsedTime))
+
+		# algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
+		# algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
 	elif algorithm == "ES":
 		sys.exit("Not implemented.")
 	elif algorithm == "CMAES":
+		startTime = timeit.default_timer()
 		algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling)
+		endTime = timeit.default_timer()
+		elapsedTime = endTime - startTime
+		print("CPU time used (seconds)\n{}".format(elapsedTime))
 	else:
 		sys.exit("Algorithm not found.")
 
@@ -40,8 +52,7 @@ def menu():
 	# F1-F5 & F8-F10 : D = 5, 10, 15, 20
 	# F6 & F7 : D = 10, 15,
 	execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe, args.constraintHandling)
-	# algorithm(args.algorithm, args.function, args.seed, args.penaltyMethod, args.parentsSize, args.nSize, args.offspringsSize, args.maxFE, args.crossoverProb, args.esType, args.globalSigma, args.windowSize)
-	print(args)
+	# print(args)
 
 
 
