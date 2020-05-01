@@ -3,24 +3,27 @@ import pandas as pd
 import os
 from pathlib import Path
 
-def readResults():
+def readResults(individualToPick):
+  if individualToPick == "hof":
+    individualToPick = "Hall of fame"
+  elif individualToPick == "last":
+    individualToPick = "Last individual"
+  else:
+    sys.exit("Individual to pick not defined.")
+
   algorithms = ["DE", "CMAES"]
   # functions = [10, 25, 60, 72, 942]
-  # functions = [10]
   functions = [10, 25, 60, 72]
-  constraintHandlingMethods = [1, 2]
+  constraintHandlingMethods = ["DEB", "APM"]
   # seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
   # , 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
   seeds = [1, 2, 3, 4, 5]
 
   basePath =  Path(__file__).parent
-  # filePath = (basePath / "../results/t10").resolve()
 
   solutions = []
-  # solutions = [[dadosf10], [dadosf25]]
-  # for f in (functions): # Functions
   for f in (functions): # Functions
-    tempFunc = []
+    dataOfFuction = []
     for a in (algorithms): # Algorithms
       for p in (constraintHandlingMethods): # Constraint handling methods
         for s in (seeds): # Seeds
@@ -29,25 +32,21 @@ def readResults():
           file = open(filePath)
           while True:
             buffer = file.readline()
-            if "Hall of Fame" in buffer: # Find hall of fame line
+            if individualToPick in buffer: # Find individual for data analysis
               buffer = file.readline() # Read one more
               buffer = buffer.split(" ")
               for item in buffer:
                 tempData.append(float(item))
               
-              # print(type(solutions))
-              # print(solutions)
             elif "CPU time used" in buffer:
               buffer = file.readline()
-            #   # Inserts time at the end of each solution (after project variables)
-            #   solutions[len(solutions)-1].append(cpuTimeUsed)
-              # solutions[len(solutions)-1]+=buffer
               tempData.append(float(buffer))
-              tempData.append("{}_f{}_p{}".format(a, f, p))
-              # solutions.append(tempData)
-              tempFunc.append(tempData)
+              tempData.append("{}+{}".format(a, p)) # TODO Verify is this works
+              # tempData.append("{}_f{}_p{}".format(a, f, p)) # Old line, works
+              dataOfFuction.append(tempData)
               break
-    solutions.append(tempFunc)
+    # Each list from solutions contains the data for each function
+    solutions.append(dataOfFuction)
   return solutions
 
 # Puts bold on the maximum value of column
@@ -177,7 +176,7 @@ def makeAnalysis(solutions):
 
 
 if __name__ == '__main__':
-  solutions = readResults()
+  solutions = readResults("last")
   # print(solutions)
   # print(len(solutions))
   # print("solutions 0")

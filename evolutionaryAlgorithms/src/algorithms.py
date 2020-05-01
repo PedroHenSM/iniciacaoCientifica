@@ -21,6 +21,13 @@ import timeit
 import operator as op # For sorting population
 from copy import deepcopy
 
+
+# Constants
+DEB = "DEB"
+APM = "APM"
+
+
+
 class Individual(object):
 	def __init__(self, n, objectiveFunction, g=None, h=None, violations=None, violationSum=None, fitness=None):
 		self.n = n
@@ -35,17 +42,12 @@ class Individual(object):
 		if boolObjFunc:
 			print("{}".format(self.objectiveFunction[0]), end=" ")
 		if constraintHandling is not None:
-			if constraintHandling == 1: # Deb
+			if constraintHandling == DEB:
 				print("{}".format(self.violationSum), end=" ")
-				# print("Violationsum", end="\t")
-			elif constraintHandling == 2: # APM
+			elif constraintHandling == APM:
 				print("{}".format(self.fitness), end=" ")
-				# print("Fitness", end="\t")
 		if boolN:
 			print(*self.n, sep=" ")
-			# for n in self.n:
-			# 	print("{}".format(n), end=" ")
-		# print()
 
 	# Makes print(individual) a string, not a reference (memory adress)
 	def __repr__(self):
@@ -76,9 +78,9 @@ class Population(object):
 			if boolObjFunc:
 				print(individual.objectiveFunction)
 			if constraintHandling:
-				if constraintHandling == 1: # Deb
+				if constraintHandling == DEB:
 					print(individual.violationSum)
-				if constraintHandling == 2: # APM
+				if constraintHandling == APM:
 					print(individual.fitness)
 			if boolN:
 				print(individual.n)
@@ -86,7 +88,7 @@ class Population(object):
 
 	def printBest(self, boolObjFunc, constraintHandling, boolN):
 		best = self.bestIndividual(constraintHandling)
-		best.printIndividual(boolObjFunc, boolN, constraintHandling)
+		best.printIndividual(boolObjFunc, constraintHandling, boolN)
 
 	def evaluate(self, function, fe, truss):
 		strFunction = str(function)
@@ -147,13 +149,13 @@ class Population(object):
 				if constraintHandling is None: # Bound constrained problems
 					if offsprings.individuals[idx].objectiveFunction[0] < offsprings.individuals[bestIdx].objectiveFunction[0]:
 						bestIdx = idx
-				elif constraintHandling is 1: # Deb
+				elif constraintHandling == DEB:
 					if offsprings.individuals[idx].violationSum < offsprings.individuals[bestIdx].violationSum:
 						bestIdx = idx
 					elif offsprings.individuals[idx].violationSum == offsprings.individuals[bestIdx].violationSum:
 						if offsprings.individuals[idx].objectiveFunction[0] < offsprings.individuals[bestIdx].objectiveFunction[0]:
 							bestIdx = idx
-				elif constraintHandling is 2: # APM
+				elif constraintHandling == APM:
 					if offsprings.individuals[idx].fitness < offsprings.individuals[bestIdx].fitness:
 						bestIdx = idx
 					elif offsprings.individuals[idx].fitness == offsprings.individuals[bestIdx].fitness:
@@ -167,13 +169,13 @@ class Population(object):
 			if constraintHandling is None: # Bound constrained problems
 				if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
 					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-			elif constraintHandling is 1: # Deb
+			elif constraintHandling == DEB:
 				if offsprings.individuals[bestIdx].violationSum < self.individuals[i].violationSum:
 					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
 				elif offsprings.individuals[bestIdx].violationSum == self.individuals[i].violationSum:
 					if offsprings.individuals[bestIdx].objectiveFunction[0] < self.individuals[i].objectiveFunction[0]:
 						self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
-			elif constraintHandling is 2: # APM
+			elif constraintHandling == APM:
 				if offsprings.individuals[bestIdx].fitness < self.individuals[i].fitness:
 					self.individuals[i] = deepcopy(offsprings.individuals[bestIdx])
 				elif offsprings.individuals[bestIdx].fitness == self.individuals[i].fitness:
@@ -203,11 +205,11 @@ class Population(object):
 			self.individuals.sort(key=op.attrgetter("objectiveFunction"))
 			if offsprings is not None:
 				offsprings.individuals.sort(key=op.attrgetter("objectiveFunction"))
-		elif constraintHandling == 1: # Deb
+		elif constraintHandling == DEB:
 			self.individuals.sort(key=op.attrgetter("violationSum", "objectiveFunction"))
 			if offsprings is not None:
 				offsprings.individuals.sort(key=op.attrgetter("violationSum", "objectiveFunction"))
-		elif constraintHandling == 2: # APM
+		elif constraintHandling == APM:
 			self.individuals.sort(key=op.attrgetter("fitness", "objectiveFunction"))
 			if offsprings is not None:
 				offsprings.individuals.sort(key=op.attrgetter("fitness", "objectiveFunction"))
@@ -221,13 +223,13 @@ class Population(object):
 			if constraintHandling is None: # Bound constrained problems
 				if individual.objectiveFunction[0] < best.objectiveFunction[0]:
 					best = deepcopy(individual)
-			elif constraintHandling == 1: # Deb
+			elif constraintHandling == DEB:
 				if individual.violationSum < best.violationSum:
 					best = deepcopy(individual)
 				elif individual.violationSum == best.violationSum:
 					if individual.objectiveFunction[0] < best.objectiveFunction[0]:
 						best = deepcopy(individual)
-			elif constraintHandling == 2: # APM
+			elif constraintHandling == APM:
 				bothViolates = individualViolates(individual, constraintHandling) and individualViolates(best, constraintHandling) # Both violates
 				neitherViolates = not individualViolates(individual, constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
 				if bothViolates or neitherViolates:
@@ -254,13 +256,13 @@ class Population(object):
 		# Assume the first individual is the best one
 		best = deepcopy(self.individuals[0])
 		for i in range(1, len(self.individuals)):
-			if constraintHandling == 1: # Deb
+			if constraintHandling == DEB:
 				if self.individuals[i].violationSum < best.violationSum:
 					best = deepcopy(self.individuals[i])
 				elif self.individuals[i].violationSum == best.violationSum:
 					if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
 						best = deepcopy(self.individuals[i])
-			elif constraintHandling == 2: # APM
+			elif constraintHandling == APM:
 				bothViolates = individualViolates(self.individuals[i], constraintHandling) and individualViolates(best, constraintHandling) # Both violates
 				neitherViolates = not individualViolates(self.individuals[i], constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
 				if bothViolates or neitherViolates:
@@ -290,13 +292,13 @@ class Population(object):
 		if constraintHandling is None: # Bound constrained problems
 			if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
 				hof = deepcopy(currentBest)
-		elif constraintHandling == 1: # Deb
+		elif constraintHandling == DEB: # Deb
 			if currentBest.violationSum < hof.violationSum:
 				hof = deepcopy(currentBest)
 			elif currentBest.violationSum == hof.violationSum:
 				if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
 					hof = deepcopy(currentBest)
-		elif constraintHandling == 2: # APM
+		elif constraintHandling == APM: # APM
 			bothViolates = individualViolates(currentBest, constraintHandling) and individualViolates(hof, constraintHandling) # Both violates
 			neitherViolates = not individualViolates(currentBest, constraintHandling) and not individualViolates(hof, constraintHandling) # Neither violates
 			if bothViolates or neitherViolates:
@@ -329,12 +331,12 @@ class Population(object):
 					individual.violations[i] = individual.g[idxG]
 					idxG+=1
 				else:
-					if constraintHandling == 1: # Deb
+					if constraintHandling == DEB:
 						individual.violations[i] = individual.h[idxH]
-					elif constraintHandling == 2: # APM
+					elif constraintHandling == APM:
 						individual.violations[i] = np.abs(individual.h[idxH]) - 0.0001
 					idxH+=1
-			if constraintHandling == 1: # Deb
+			if constraintHandling == DEB:
 				# Only sums positives values
 				individual.violationSum = np.sum(value for value in individual.violations if value > 0)
 
@@ -490,9 +492,9 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
 	feasibiliyMeasure = "-"
 	if constraintHandling is None:
 		pass
-	elif constraintHandling == 1: # Deb
+	elif constraintHandling == DEB:
 		feasibiliyMeasure = "ViolationSum"
-	elif constraintHandling == 2: # APM
+	elif constraintHandling == APM:
 		feasibiliyMeasure = "Fitness"
 	else:
 		sys.exit("Constraint handling method not defined.")
@@ -509,10 +511,13 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
 	print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
 	print("ngen ObjectiveFunction {} ProjectVariables".format(feasibiliyMeasure))
 
-def printFinalPopulationInfo(status):
+def printFinalPopulationInfo(status, population, hof, constraintHandling):
 	print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
 	print("Status: {}".format(status))
-	print("Hall of Fame")
+	print("Last individual")
+	population.printBest(True, constraintHandling, True)
+	print("Hall of fame")
+	hof.printIndividual(True, constraintHandling, True)
 
 def initializeTruss(function):
 	if function == 110:  # Truss 10 bars
@@ -540,10 +545,10 @@ def initiliazeHandleConstraintsParams(function):
 		return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
 
 def individualViolates(individual, constraintHandling):
-	if constraintHandling == 1: # Deb
+	if constraintHandling == DEB:
 		if individual.violationSum == 0:
 			return False
-	elif constraintHandling == 2: # APM
+	elif constraintHandling == APM:
 		if individual.objectiveFunction[0] == individual.fitness:
 			return False
 	else:
@@ -714,7 +719,6 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 		# Check bounds and evaluate offsprings
 		offsprings.checkBounds(function, lowerBound, upperBound)
 		feval = offsprings.evaluate(function, feval, truss)
-		
 		# Handling constraints, if necessary
 		if constraintHandling:
 			avgObjFunc = offsprings.handleConstraints(parents, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
@@ -728,11 +732,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 		# Prints best individual of current generation
 		parents.printBest(True, constraintHandling, True)
 	status = "Finished"
-	print("Final individual")
-	parents.printBest(True, constraintHandling, True)
-	printFinalPopulationInfo(status)
-	# Prints the best individual from last generation and hall of fame
-	hof.printIndividual(True, constraintHandling, True)
+	printFinalPopulationInfo(status, parents, hof, constraintHandling)
 
 # CMA ES
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling):
@@ -798,8 +798,5 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 		# Prints best individual of current generation
 		parents.printBest(True, constraintHandling, True)
 	status = "Finished"
-	# Prints the best individual from last generation and hall of fame
-	print("Final individual")
-	parents.printBest(True, constraintHandling, True)
-	printFinalPopulationInfo(status)
-	hof.printIndividual(True, constraintHandling, True)
+	# Prints final info
+	printFinalPopulationInfo(status, parents, hof, constraintHandling)

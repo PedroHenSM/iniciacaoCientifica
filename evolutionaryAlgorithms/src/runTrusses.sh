@@ -10,7 +10,7 @@ totalSeeds=5 # 30
 seeds=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30)
 
 totalConstraintHandlingMethods=2 # 2 | 1 Deb and 2 APM
-constraintHandlings=(1 2)
+constraintHandlings=(DEB APM)
 
 totalPopulationSize=1 # ParentsSize
 populations=(50 100)

@@ -38,7 +38,7 @@ def menu():
 						"For the truss problem, the first digit must be 2, followed by the number of the bars in the problem. "
 						"Example: 225, is for the truss of 25 bars")
 	parser.add_argument("--seed", "-s", type=int, default=1, help="Seed to be used")
-	parser.add_argument("--constraintHandling", "-p", type=int, default=1, help="Constraint handling method to be used. 1 for Deb Penalty or 2 for APM")
+	parser.add_argument("--constraintHandling", "-p", type=str, default="DEB", help="Constraint handling method to be used (DEB or APM)")
 	parser.add_argument("--parentsSize", "-u", type=int, default=50, help="µ is the parental population size")  # u from µ (mi) | µ ≈ λ/4
 	parser.add_argument("--nSize", "-n", type=int, default=5, help="Search space dimension")
 	parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
