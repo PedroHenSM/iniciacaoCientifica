@@ -6,8 +6,8 @@ from pathlib import Path
 def readResults():
   algorithms = ["DE", "CMAES"]
   # functions = [10, 25, 60, 72, 942]
-  # functions = [10, 25, 60, 72]
-  functions = [10]
+  # functions = [10]
+  functions = [10, 25, 60, 72]
   constraintHandlingMethods = [1, 2]
   # seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
   # , 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
@@ -17,7 +17,10 @@ def readResults():
   # filePath = (basePath / "../results/t10").resolve()
 
   solutions = []
+  # solutions = [[dadosf10], [dadosf25]]
+  # for f in (functions): # Functions
   for f in (functions): # Functions
+    tempFunc = []
     for a in (algorithms): # Algorithms
       for p in (constraintHandlingMethods): # Constraint handling methods
         for s in (seeds): # Seeds
@@ -41,52 +44,143 @@ def readResults():
               # solutions[len(solutions)-1]+=buffer
               tempData.append(float(buffer))
               tempData.append("{}_f{}_p{}".format(a, f, p))
-              solutions.append(tempData)
+              # solutions.append(tempData)
+              tempFunc.append(tempData)
               break
+    solutions.append(tempFunc)
   return solutions
 
+# Puts bold on the maximum value of column
+def highlight_max(s):
+  is_max = s == s.max()
+  return ['font-weight: bold' if v else '' for v in is_max]
+
+# Puts bold on the minimum value of column
+def highlight_min(s):
+  is_max = s == s.min()
+  return ['font-weight: bold' if v else '' for v in is_max]
+
+# Get style (css) for tables
+def getTableStyle():
+  th_props = [
+      ('font-size', '18px'),
+      ('font-family', 'monospace'),
+      ('text-align', 'center'),
+      ('background-color', '#f7f7f9'),
+  ]
+
+  td_props = [
+    ('font-size', '16px'),
+    ('font-family', 'monospace'),
+    ('padding', '10px'),
+    ('padding-top', '25px')
+  ]
+
+  styles = [
+    dict(selector="th", props=th_props),
+    dict(selector="td", props=td_props)
+  ]
+  return styles
+
+def makeAnalysisNew(solutions):
+  # Read solutions and store on dataframe
+  for solution in solutions:
+    df = pd.DataFrame.from_records(solution)
+    titles = ["Objective Function", "ViolationSum/Fitness"]
+    # Define name for columns of the project variables
+    for i in range(len(df.columns)-4):
+      titles.append("ProjVar{}".format(i))
+    # Define name for the last 2 columns
+    titles.append("CPU Time(s)")
+    titles.append("Algorithm")
+    # Name columns
+    df.columns = titles
+
+    # Rename all rows from column "Algorithm" that contains searched string (more readibility)
+    # df["Algorithm"] = df["Algorithm"].str.replace("DE_f10_p1", "DE + Deb")
+    # df["Algorithm"] = df["Algorithm"].str.replace("DE_f10_p2", "DE + APM")
+    # df["Algorithm"] = df["Algorithm"].str.replace("CMAES_f10_p1", "CMAES + Deb")
+    # df["Algorithm"] = df["Algorithm"].str.replace("CMAES_f10_p2", "CMAES + APM")
+    # Drop columns that contains word | Could be done with df.filter(regex)
+    df.drop([col for col in df.columns if "ProjVar" in col], axis=1, inplace=True)
+    df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
+    df.drop([col for col in df.columns if "CPU Time" in col], axis=1,inplace=True)
+
+    # pd.set_option("display.float_format","{:e}".format) # Use scientific notation as format
+    # Group by algorithm 
+    df = df.groupby(["Algorithm"])
+    
+    # Aggregate and realize the math
+    df = df.agg(["mean", "std", "min", "max"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+
+
+
+    # Gets styles for formatting table and apply on df
+    styles = getTableStyle()
+    t = (df.style
+          .set_table_styles(styles)
+          .apply(highlight_min))
+
+
+
+    # Generates html+css table from dataframe
+    print(t.render()) 
+    
+    # df.to_csv('tableCsv.csv') # Exports dataframe to csv file
+    # df.to_latex('tableLatex.txt') #  Export dataframe to simple latex table
+
 def makeAnalysis(solutions):
+  # Read solutions and store on dataframe
   df = pd.DataFrame.from_records(solutions)
   titles = ["Objective Function", "ViolationSum/Fitness"]
+  # Define name for columns of the project variables
   for i in range(len(df.columns)-4):
     titles.append("ProjVar{}".format(i))
+  # Define name for the last 2 columns
   titles.append("CPU Time(s)")
-  titles.append("Alg")
+  titles.append("Algorithm")
+  # Name columns
   df.columns = titles
-  print(df)
-  # print(df.describe())
-  # print(df.iloc[4]) # Selects 4 row of the df
-  toDrop = "ProjVar"
-  # Drop columns that contains word "toDrop" | Could be done with df.filter(regex)
-  df.drop([col for col in df.columns if toDrop in col], axis=1, inplace=True)
+
+  # Rename all rows from column "Algorithm" that contains searched string (more readibility)
+  df["Algorithm"] = df["Algorithm"].str.replace("DE_f10_p1", "DE + Deb")
+  df["Algorithm"] = df["Algorithm"].str.replace("DE_f10_p2", "DE + APM")
+  df["Algorithm"] = df["Algorithm"].str.replace("CMAES_f10_p1", "CMAES + Deb")
+  df["Algorithm"] = df["Algorithm"].str.replace("CMAES_f10_p2", "CMAES + APM")
+  # Drop columns that contains word | Could be done with df.filter(regex)
+  df.drop([col for col in df.columns if "ProjVar" in col], axis=1, inplace=True)
   df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
   df.drop([col for col in df.columns if "CPU Time" in col], axis=1,inplace=True)
-  print("After drop columns")
-  print(df)
-  df = df.groupby(["Alg"])
-  print("After grouping")
-  print(df)
-  # df = df.describe()
-  # df = df.mean()
-  # print("Describe")
-  # print(df)
-  # df = df.describe()
-  # df.describe().unstack()[['count','max']]
-  # df = df.describe().loc[['count','max']]
-  df1 = df.agg([np.mean, np.std, np.min, np.max]) # Works
-  df2 = df.agg(["mean", "std", "min", "max"]) # Works
 
-  print("Agg")
-  print(df1)
-  print(df2)
-  # print(a)
+  # pd.set_option("display.float_format","{:e}".format) # Use scientific notation as format
+  # Group by algorithm 
+  df = df.groupby(["Algorithm"])
+  
+  # Aggregate and realize the math
+  df = df.agg(["mean", "std", "min", "max"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
 
-  # print(a)
+
+
+  # Gets styles for formatting table and apply on df
+  styles = getTableStyle()
+  t = (df.style
+        .set_table_styles(styles)
+        .apply(highlight_min))
+
+
+
+  # Generates html+css table from dataframe
+  print(t.render()) 
+  
+  # df.to_csv('tableCsv.csv') # Exports dataframe to csv file
+  # df.to_latex('tableLatex.txt') #  Export dataframe to simple latex table
+
 
 if __name__ == '__main__':
   solutions = readResults()
   # print(solutions)
+  # print(len(solutions))
   # print("solutions 0")
   # print(solutions[0])
   # print(solutions[1])
-  makeAnalysis(solutions)
+  makeAnalysisNew(solutions)
