@@ -43,7 +43,7 @@ def menu():
   parser.add_argument("--nSize", "-n", type=int, default=5, help="Search space dimension")
   parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
   parser.add_argument("--maxFe", "-m", type=int, default=15000, help="The max number of functions evaluations")
-  parser.add_argument("--case", "-c", type=str, default="discrete", help="Discrete or continuous design variables")
+  parser.add_argument("--case", "-c", type=str, default="continuous", help="Discrete or continuous design variables")
   # parser.add_argument("--crossoverProb", "-c", type=int, default=100, help="The crossover probability [0,100]")
   # parser.add_argument("--esType", "-e", type=int, default=0, help="The type of ES. 0 for ES(µ + λ) or 1 for ES(µ , λ)")
   # parser.add_argument("--globalSigma", "-g", type=int, default=0, help="If the σ parameter is global or not. 1 for global σ or 0 if not")

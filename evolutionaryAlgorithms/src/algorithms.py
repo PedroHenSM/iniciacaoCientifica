@@ -15,7 +15,7 @@ sys.path.append("../functions/eureka")
 import utils
 import cec2020BoundConstrained
 import eureka
-import simpleFunctions as Functions
+import engineeringProblems
 import numpy as np
 import timeit
 import operator as op # For sorting population
@@ -64,9 +64,86 @@ class Population(object):
       h = [99999 for i in range(hSize)] if hSize is not None else None
       violations = [99999 for i in range(gSize + hSize)] if gSize is not None else None
       violationSum = 99999 if gSize is not None else None
-      for _ in range(nSize):
+      for i in range(nSize):
         if strFunction[0] == "1": # Truss problems
           n.append(np.random.uniform(lowerBound, upperBound))
+        if strFunction[0] == "2": # Mechanical Engineering Problems
+          if function == 21:
+            if i == 0:
+              n.append(np.random.uniform(2, 15))
+            elif i == 1:
+              n.append(np.random.uniform(0.25, 1.3))
+            elif i == 2:
+              n.append(np.random.uniform(0.05, 2))
+            else:
+              sys.exit("Design variable should not exist.")
+          elif function == 22:
+            if i == 0:
+              n.append(np.random.uniform(2.6, 3.6))
+            elif i == 1:
+              n.append(np.random.uniform(0.7, 0.8))
+            elif i == 2:
+              n.append(np.round(np.random.uniform(17, 28)))
+            elif i == 3:
+              n.append(np.random.uniform(7.3, 8.3))
+            elif i == 4:
+              n.append(np.random.uniform(7.8, 8.3))
+            elif i == 5:
+              n.append(np.random.uniform(2.9, 3.9))
+            elif i == 6:
+              n.append(np.random.uniform(2.9, 3.9)) # FIXME Verify bounds for x7
+            else:
+              sys.exit("Design variable should not exist.")
+          elif function == 23:
+            if i == 0:
+              n.append(np.random.uniform(0.125, 10))
+            elif i == 1:
+              n.append(np.random.uniform(0.1, 10))
+            elif i == 2:
+              n.append(np.random.uniform(0.1, 10))
+            elif i == 3:
+              n.append(np.random.uniform(0.1, 10))
+            else:
+              sys.exit("Design variable should not exist.")
+          elif function == 24:
+            if i == 0:
+              n.append(np.random.uniform(0.0625, 5)) # FIXME Discrete variables.
+            elif i == 1:
+              n.append(np.random.uniform(0.0625, 5)) # FIXME Discrete variables.
+            elif i == 2:
+              n.append(np.random.uniform(10, 200))
+            elif i == 3:
+              n.append(np.random.uniform(10, 200))
+            else:
+              sys.exit("Design variable should not exist.")
+          elif function == 25:
+            # n[0] - n[4] -> h
+            # n[5] - n[9] -> b
+            if i == 0:
+              n.append(np.round(np.random.uniform(2.4, 3.1))) # FIXME Verify bounds
+            elif i == 1:
+              n.append(np.random.uniform(45, 60)) # FIXME Discrete values
+            elif i == 2:
+              n.append(np.random.uniform(45, 60)) # FIXME Discrete values
+            elif i == 3:
+              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
+            elif i == 4:
+              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
+            elif i == 5:
+              n.append(np.round(np.random.uniform(2.4, 3.1))) # FIXME Verify bounds
+            elif i == 6:
+              n.append(np.random.uniform(2.4, 3.1)) # FIXME Discrete values
+            elif i == 7:
+              n.append(np.random.uniform(2.4, 3.1)) # FIXME Discrete values
+            elif i == 8:
+              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
+            elif i == 9:
+              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
+            elif i == 10:
+              sys.exit("Verify this last constraint. Not implemented.")
+          else:
+            sys.exit("Function not defined.")
+
         elif strFunction[0] == "3": # cec 2020 bound constrained
           n.append(np.random.uniform(-100, 100))
         else:
@@ -115,7 +192,7 @@ class Population(object):
         utils.delete_doubleArray(xArray)
         utils.delete_doubleArray(valuesArray)
       elif strFunction[0] == "2":
-        sys.exit("Not defined")
+        individual.objectiveFunction, individual.g, individual.h = engineeringProblems.executeFunction(function, individual.n, individual.objectiveFunction, individual.g, individual.h)
       elif strFunction[0] == "3": # Cec 2020 bound constrained
         # Gets all numbers except the first
         func = int(strFunction[1:])
@@ -184,10 +261,17 @@ class Population(object):
 
   def checkBounds(self, function, lowerBound, upperBound):
     strFunction = str(function)
+    nMinList = nMaxList = None
     nMin = nMax = 0
     if strFunction[0] == "1": # Truss problems
       nMin = lowerBound
       nMax = upperBound
+    elif strFunction[1] == "2": # Engineering problems
+      if function == 21:
+        nMinList = [2, 0.25, 0.05]
+        nMaxList = [15, 1.3, 2]
+      else:
+        sys.exit("Function not defined.")
     elif strFunction[0] == "3": # Cec 2020 bound constrained functions
       nMin = -100
       nMax = 100
@@ -195,10 +279,14 @@ class Population(object):
       sys.exit("Function not defined.")
     for individual in self.individuals:
       for i in range(len(individual.n)):
-        if individual.n[i] > nMax:
-          individual.n[i] = nMax
-        elif individual.n[i] < nMin:
+        if nMaxList is not None and nMinList is not None: # Each dimension has a different bound
+          nMin = nMinList[i]
+          nMax = nMaxList[i]
+        # Verify if each design variable respects the bounds
+        if individual.n[i] < nMin:
           individual.n[i] = nMin
+        elif individual.n[i] > nMax:
+          individual.n[i] = nMax
 
   def sort(self, offsprings, constraintHandling):
     if constraintHandling is None: # Bound constrained problem
@@ -572,6 +660,8 @@ def getDiscreteCaseList(function):
        177., 178., 179., 180., 181., 182., 183., 184., 185., 186., 187.,
        188., 189., 190., 191., 192., 193., 194., 195., 196., 197., 198.,
        199., 200.]
+  else:
+    sys.exit("Functiont doesn't have discrete set. Probably should be a continuous one.")
   return chosenSet
 
 # Find nearestvalue in list (considering that list is sorted)
@@ -586,6 +676,33 @@ def find_nearest(array, value):
   array = np.asarray(array)
   idx = (np.abs(array - value)).argmin()
   return array[idx]
+
+def initializeConstraints(function):
+  strFunction = str(function)
+  truss = lowerBound = upperBound = None
+  if strFunction[0] == "1": # Trusses
+    truss, lowerBound, upperBound = initializeTruss(function)
+    nSize = truss.getDimension()
+    g, h, constraintsSize = truss.getNumberConstraints(), 0, truss.getNumberConstraints() + 0
+  elif strFunction[0] == "2": # Mechanical Engineering Problems
+    if function == 21: # The tension/compression spring design
+      nSize = 3
+      g, h, constraintsSize = 4, 0, 4
+    elif function == 22: # The speed reducer design
+      nSize = 7
+      g, h, constraintsSize = 11, 0, 11
+    elif function == 23: # The welded beam design
+      nSize = 4
+      g, h, constraintsSize = 5, 0, 5
+    elif function == 24: # The pressure vessel design
+      nSize = 4
+      g, h, constraintsSize = 4, 0, 4
+    elif function == 25: # The cantilever beam design
+      nSize = 10
+      g, h, constraintsSize = 11, 0, 11
+  else:
+    sys.exit("Constraints not defined for function.")
+  return g, h, constraintsSize, truss, lowerBound, upperBound, nSize # FIXME Verify is none can be returned on trurss, lb and upb
 
 def initiliazeHandleConstraintsParams(function):
   gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize = initializeConstraints(function)
@@ -718,17 +835,6 @@ def populationPick(parentIdx, parentsSize):
         chosenOnes.append(idx)
   return chosenOnes
 
-def initializeConstraints(function):
-  strFunction = str(function)
-  truss = lowerBound = upperBound = None
-  if strFunction[0] == "1": # Trusses
-    truss, lowerBound, upperBound = initializeTruss(function)
-    nSize = truss.getDimension()
-    g, h, constraintsSize = truss.getNumberConstraints(), 0, truss.getNumberConstraints() + 0
-  else:
-    sys.exit("Constraints not defined for function.")
-  return g, h, constraintsSize, truss, lowerBound, upperBound, nSize
-
 # Differential evolution
 def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case):
   np.random.seed(seed)
@@ -798,6 +904,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   strFunction = str(function)
   feval = 0
   hof = None
+  discreteSet = None
   status="Initializing"
 
   if strFunction[0] == "3": # cec2020 bound constrained
@@ -806,14 +913,13 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   if strFunction[0] != "1": # Bound constrained problems
     constraintHandling = None
 
-
   # User defined params (if set to None, uses default)
   parentsSize = centroid = sigma = mu = rweights = None
   # rweights = "equal"
-
+  if case == "discrete":
+    discreteSet = getDiscreteCaseList(function)
   if constraintHandling:
     gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
-    discreteSet = getDiscreteCaseList(function)
   else:
     lowerBound = upperBound = gSize = hSize = truss = None
 
