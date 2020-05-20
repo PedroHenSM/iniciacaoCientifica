@@ -4,11 +4,11 @@ import sys
 def f01(x, objFunc, g, h): # The tension/compression spring design
   objectiveFunction = (x[0] + 2) * x[1] * np.power(x[2], 2) # Volume
   g[0] = 1 - ((np.power(x[1], 3)*x[0])/(71785*np.power(x[2],4))) # <= 0
-  g[1] = ((4*np.power(x[1],2) - x[2]*x[1])/(12566(x[1] * np.power(x[2],3) - np.power(x[2],4)))) + (1/(5108 * np.power(x[2], 2))) - 1 # <= 0
+  g[1] = ((4*np.power(x[1],2) - x[2]*x[1])/(12566 * (x[1] * np.power(x[2],3) - np.power(x[2],4)))) + (1/(5108 * np.power(x[2], 2))) - 1 # <= 0
   g[2] = 1 - ((140.45) * x[2] / (np.power(x[1], 2) * x[0])) # <= 0
   g[3] = ((x[1] + x[2]) / 1.5) - 1 # <= 0
 
-  return objectiveFunction
+  return objectiveFunction, g, h
 
 def f02(x, objFunc, g, h): # The speed reducer design
   objectiveFunction = 0.7854 * x[0] * np.power(x[1], 2) * (3.3333 * np.power(x[2], 2) + 14.9334 * x[2] - 43.0934) - 1.508 * x[0] * (np.power(x[5], 2) + np.power(x[6], 2)) + 7.4777 * (np.power(x[5], 3) + np.power(x[6], 3)) + 0.7854 * (x[3] * np.power(x[5], 2) + x[4] * np.power(x[6],2)) # Weight
@@ -24,7 +24,7 @@ def f02(x, objFunc, g, h): # The speed reducer design
   g[9] = (1.5 * x[5] + 1.9) * np.float_power(x[3], -1) -1 # <= 1
   g[10] = (1.1 * x[6] + 1.9) * np.float_power(x[4], -1) -1 # <= 1
   
-  return objectiveFunction
+  return objectiveFunction, g, h
 
 def f03(x, objFunc, g, h): # The welded beam design
   # h -> x[0] | l -> x[1] | t -> x[2] | b -> x[3]
@@ -38,9 +38,9 @@ def f03(x, objFunc, g, h): # The welded beam design
   alpha = np.sqrt(0.25 * (np.power(x[1], 2) + np.power((x[0] + x[2]), 2)))
   tau1 = (6000) / (np.sqrt(2) * x[0] * x[1])
   tau2 = ((6000 * (14 + 0.5 * x[1]) * alpha) / (2 * (0.707 * x[0] * x[1] * (np.power(x[1], 2) / 12 + 0.25 * np.power((x[0] + x[2]),2)))))
-  pc = 64746.022(1 - 0.0282346 * x[2]) * x[2] * np.power(x[3], 3)
+  pc = 64746.022 * (1 - 0.0282346 * x[2]) * x[2] * np.power(x[3], 3)
 
-  return objectiveFunction
+  return objectiveFunction, g, h
 
 def f04(x, objFunc, g, h): # The pressure vessel design
   # Ts -> x[0] | Th -> x[1] | R -> x[2] | L -> x[3]
@@ -50,7 +50,7 @@ def f04(x, objFunc, g, h): # The pressure vessel design
   g[2] = np.pi * np.power(x[2], 2) * x[3] + 4/(3 * np.pi * np.power(x[2], 3)) - 1296000 # >= 0
   g[3] = -x[3] + 240 # >= 0
 
-  return objectiveFunction
+  return objectiveFunction, g, h
 
 def f05(x, objFunc, g, h): # The cantilever beeam design
   # Hi -> x[0] | Bi -> x[1]
@@ -64,7 +64,7 @@ def f05(x, objFunc, g, h): # The cantilever beeam design
   g[5] = g[6] = g[7] = g[8] = g[9] = x[0] / x[1] - 20 # <= 20
   g[10] = delta - 2.7 # <= 2.7
 
-  return objectiveFunction
+  return objectiveFunction, g, h
 
 def executeFunction(function, x, objFunc, g, h):
   if function == 21:

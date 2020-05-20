@@ -192,7 +192,7 @@ class Population(object):
         utils.delete_doubleArray(xArray)
         utils.delete_doubleArray(valuesArray)
       elif strFunction[0] == "2":
-        individual.objectiveFunction, individual.g, individual.h = engineeringProblems.executeFunction(function, individual.n, individual.objectiveFunction, individual.g, individual.h)
+        individual.objectiveFunction[0], individual.g, individual.h = engineeringProblems.executeFunction(function, individual.n, individual.objectiveFunction, individual.g, individual.h)
       elif strFunction[0] == "3": # Cec 2020 bound constrained
         # Gets all numbers except the first
         func = int(strFunction[1:])
@@ -266,7 +266,7 @@ class Population(object):
     if strFunction[0] == "1": # Truss problems
       nMin = lowerBound
       nMax = upperBound
-    elif strFunction[1] == "2": # Engineering problems
+    elif strFunction[0] == "2": # Engineering problems
       if function == 21:
         nMinList = [2, 0.25, 0.05]
         nMaxList = [15, 1.3, 2]
@@ -841,21 +841,23 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
   strFunction = str(function)
   feval = 0
   hof = None
+  discreteSet = None
   status = "Initializing"
 
   if strFunction[0] == "3": # cec2020 bound constrained
     maxFe = defineMaxEval(function, nSize)
-
-  if strFunction[0] != "1": # Bound constrained problems
     constraintHandling = None
 
   # Initialize differential evolution parameters
   CR, F, generatedOffspring = deInitParams(function, parentsSize, offspringsSize)
 
+  if case == "discrete":
+    discreteSet = getDiscreteCaseList(function)
+
   # Initialize truss constraints, if necessary
   if constraintHandling:
     gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
-    discreteSet = getDiscreteCaseList(function)
+    # discreteSet = getDiscreteCaseList(function)
   else:
     lowerBound = upperBound = gSize = hSize = truss = None
 
@@ -879,7 +881,6 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
     print(feval, end=" ")
     # Generate new population
     parents.deGeneratePopulation(offsprings, generatedOffspring, CR, F)
-
     # Check bounds and evaluate offsprings
     offsprings.checkBounds(function, lowerBound, upperBound)
     feval = offsprings.evaluate(function, feval, truss, case, discreteSet)
@@ -909,8 +910,6 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
   if strFunction[0] == "3": # cec2020 bound constrained
     maxFe = defineMaxEval(function, nSize)
-
-  if strFunction[0] != "1": # Bound constrained problems
     constraintHandling = None
 
   # User defined params (if set to None, uses default)
