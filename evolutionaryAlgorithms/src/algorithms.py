@@ -67,8 +67,8 @@ class Population(object):
       for i in range(nSize):
         if strFunction[0] == "1": # Truss problems
           n.append(np.random.uniform(lowerBound, upperBound))
-        if strFunction[0] == "2": # Mechanical Engineering Problems
-          if function == 21:
+        elif strFunction[0] == "2": # Mechanical Engineering Problems
+          if function == 21: # The Tension/Compression Spring Design
             if i == 0:
               n.append(np.random.uniform(2, 15))
             elif i == 1:
@@ -77,7 +77,7 @@ class Population(object):
               n.append(np.random.uniform(0.05, 2))
             else:
               sys.exit("Design variable should not exist.")
-          elif function == 22:
+          elif function == 22: # The Speed Reducer design
             if i == 0:
               n.append(np.random.uniform(2.6, 3.6))
             elif i == 1:
@@ -91,10 +91,10 @@ class Population(object):
             elif i == 5:
               n.append(np.random.uniform(2.9, 3.9))
             elif i == 6:
-              n.append(np.random.uniform(2.9, 3.9)) # FIXME Verify bounds for x7
+              n.append(np.random.uniform(5, 5.5))
             else:
               sys.exit("Design variable should not exist.")
-          elif function == 23:
+          elif function == 23: # The Welded Beam design
             if i == 0:
               n.append(np.random.uniform(0.125, 10))
             elif i == 1:
@@ -105,26 +105,26 @@ class Population(object):
               n.append(np.random.uniform(0.1, 10))
             else:
               sys.exit("Design variable should not exist.")
-          elif function == 24:
+          elif function == 24: # The Pressure Vessel design
             if i == 0:
-              n.append(np.random.uniform(0.0625, 5)) # FIXME Discrete variables.
+              n.append(np.random.uniform(0.0625, 5))
             elif i == 1:
-              n.append(np.random.uniform(0.0625, 5)) # FIXME Discrete variables.
+              n.append(np.random.uniform(0.0625, 5))
             elif i == 2:
               n.append(np.random.uniform(10, 200))
             elif i == 3:
               n.append(np.random.uniform(10, 200))
             else:
               sys.exit("Design variable should not exist.")
-          elif function == 25:
+          elif function == 25: # The Cantilever Beam design
             # n[0] - n[4] -> h
             # n[5] - n[9] -> b
             if i == 0:
               n.append(np.round(np.random.uniform(2.4, 3.1))) # FIXME Verify bounds
             elif i == 1:
-              n.append(np.random.uniform(45, 60)) # FIXME Discrete values
+              n.append(np.random.uniform(0, 60))
             elif i == 2:
-              n.append(np.random.uniform(45, 60)) # FIXME Discrete values
+              n.append(np.random.uniform(45, 60))
             elif i == 3:
               n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
             elif i == 4:
@@ -267,9 +267,18 @@ class Population(object):
       nMin = lowerBound
       nMax = upperBound
     elif strFunction[0] == "2": # Engineering problems
-      if function == 21:
+      if function == 21: # The Tension/Compression Spring Design
         nMinList = [2, 0.25, 0.05]
         nMaxList = [15, 1.3, 2]
+      elif function == 22: # The Speed Reducer design
+        nMinList = [2.6, 0.7, 17, 7.3, 7.8, 2.9, 5]
+        nMaxList = [3.6, 0.8, 28, 8.3, 8.3, 3.9, 5.5]
+      elif function == 23: # The Welded Beam design
+        nMinList = [0.125, 0.1, 0.1, 0.1]
+        nMaxList = [10, 10, 10, 10]
+      elif function == 24: # The Pressure Vessel design
+        nMinList = [0.0625, 0.0625, 10, 10]
+        nMaxList = [5, 5, 200, 200]
       else:
         sys.exit("Function not defined.")
     elif strFunction[0] == "3": # Cec 2020 bound constrained functions
@@ -853,7 +862,6 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 
   if case == "discrete":
     discreteSet = getDiscreteCaseList(function)
-
   # Initialize truss constraints, if necessary
   if constraintHandling:
     gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc = constraintsInitParams(function, constraintHandling)
@@ -899,7 +907,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
   status = "Finished"
   printFinalPopulationInfo(status, parents, hof, constraintHandling)
 
-# CMA ES
+# CMA ES TODO Not working for problem 22 (not converging)
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case):
   np.random.seed(seed)
   strFunction = str(function)
