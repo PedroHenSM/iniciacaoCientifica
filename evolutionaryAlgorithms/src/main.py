@@ -12,7 +12,7 @@ def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed,
     sys.exit("Not implemented.")
   elif algorithm == "DE":
     startTime = timeit.default_timer()
-    algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case)
+    algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0)
     endTime = timeit.default_timer()
     elapsedTime = endTime - startTime
     print("CPU time used (seconds)\n{}".format(elapsedTime))
@@ -23,7 +23,7 @@ def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed,
     sys.exit("Not implemented.")
   elif algorithm == "CMAES":
     startTime = timeit.default_timer()
-    algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case)
+    algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0)
     endTime = timeit.default_timer()
     elapsedTime = endTime - startTime
     print("CPU time used (seconds)\n{}".format(elapsedTime))
