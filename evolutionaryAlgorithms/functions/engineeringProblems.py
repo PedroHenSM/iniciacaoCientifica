@@ -7,7 +7,7 @@ def find_nearest(array, value):
   idx = (np.abs(array - value)).argmin()
   return array[idx]
 
-def f01(x, objFunc, g, h): # The tension/compression spring design
+def tensionCompressionSpring(x, objFunc, g, h): # The tension/compression spring design | 36k maxEval
   objectiveFunction = (x[0] + 2) * x[1] * np.power(x[2], 2) # Volume
   g[0] = 1 - ((np.power(x[1], 3)*x[0])/(71785*np.power(x[2],4))) # <= 0
   g[1] = ((4*np.power(x[1],2) - x[2]*x[1])/(12566 * (x[1] * np.power(x[2],3) - np.power(x[2],4)))) + (1/(5108 * np.power(x[2], 2))) - 1 # <= 0
@@ -16,7 +16,7 @@ def f01(x, objFunc, g, h): # The tension/compression spring design
 
   return objectiveFunction, g, h
 
-def f02(x, objFunc, g, h): # The speed reducer design
+def speedReducer(x, objFunc, g, h): # The speed reducer design | 36k maxEval
   # x =[3.5, 0.7, 17, 7.3, 7.8, 3.350215, 5.286683] Best solution found by bernardino (08)
   x[2] = np.round(x[2]) # This variable is integer
   objectiveFunction = 0.7854 * x[0] * np.power(x[1], 2) * (3.3333 * np.power(x[2], 2) + 14.9334 * x[2] - 43.0934) - 1.508 * x[0] * (np.power(x[5], 2) + np.power(x[6], 2)) + 7.4777 * (np.power(x[5], 3) + np.power(x[6], 3)) + 0.7854 * (x[3] * np.power(x[5], 2) + x[4] * np.power(x[6],2)) # Weight
@@ -39,7 +39,7 @@ def f02(x, objFunc, g, h): # The speed reducer design
   
   return objectiveFunction, g, h
 
-def f03(x, objFunc, g, h): # The welded beam design
+def weldedBeam(x, objFunc, g, h): # The welded beam design | 320k maxEval
   # h -> x[0] | l -> x[1] | t -> x[2] | b -> x[3]
   alpha = np.sqrt(0.25 * (np.power(x[1], 2) + np.power((x[0] + x[2]), 2))) # OK
   tau1 = (6000) / (np.sqrt(2) * x[0] * x[1]) # OK
@@ -55,7 +55,7 @@ def f03(x, objFunc, g, h): # The welded beam design
 
   return objectiveFunction, g, h
 
-def f04(x, objFunc, g, h): # The pressure vessel design
+def pressureVesel(x, objFunc, g, h): # The pressure vessel design | 80k maxEval
   # Ts -> x[0] | Th -> x[1] | R -> x[2] | L -> x[3]
   # x = [0.8125, 0.4375, 42.0973, 176.6509]
   discreteSet = [0.0625, 0.125 , 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
@@ -79,31 +79,84 @@ def f04(x, objFunc, g, h): # The pressure vessel design
 
   return objectiveFunction, g, h
 
-def f05(x, objFunc, g, h): # The cantilever beam design
+
+# private static double[] cantileverBeam(double[] x) {
+#         //calculo da funcao objetiva
+#         double f[] = new double[12];
+#         f[0] = 100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9]);
+       
+#         //calculo das restricoes (v)
+#         double[] v = new double[11+1];
+#         v[0] = 6*25000000/(x[0]*(x[1]*x[1])) - 14000;
+#         v[1] = 6*20000000/(x[2]*(x[3]*x[3])) - 14000;
+#         v[2] = 6*15000000/(x[4]*(x[5]*x[5])) - 14000;
+#         v[3] = 6*10000000/(x[6]*(x[7]*x[7])) - 14000;
+#         v[4] = 6*5000000/(x[8]*(x[9]*x[9])) - 14000;
+#         v[5]  = (x[1]/x[0]) - 20;
+#         v[6]  = (x[3]/x[2]) - 20;
+#         v[7]  = (x[5]/x[4]) - 20;
+#         v[8]  = (x[7]/x[6]) - 20;
+#         v[9] = (x[9]/x[8]) - 20;
+#         double aj1 = x[0]*(Math.pow(x[1], 3))/12;
+#         double aj2 = x[2]*(Math.pow(x[3], 3))/12;
+#         double aj3 = x[4]*(Math.pow(x[5], 3))/12;
+#         double aj4 = x[6]*(Math.pow(x[7], 3))/12;
+#         double aj5 = x[8]*(Math.pow(x[9], 3))/12;
+#         v[10] = (0.0025/3)*( (1000000/aj5) + (7000000/aj4) + (19000000/aj3) + (37000000/aj2) + (61000000/aj1) ) - 2.7;
+       
+#         for(int i=1; i<f.length; i++) {
+#             f[i] = v[i-1];
+#         }
+#         return f;
+#     }
+
+def cantileverBeam(x, objFunc, g, h): # The cantilever beam design | 35k maxEval
   # Hi -> x[0] | Bi -> x[1]
-  objectiveFunction = 0 # Volume
-  for i in range(5):
-    v += x[0] * x[1]
-  objectiveFunction = objectiveFunction * 100
+  # objectiveFunction = 0 # Volume
+  # for i in range(5):
+  #   v += x[0] * x[1]
+  # objectiveFunction = objectiveFunction * 100
 
-  g[0] = g[1] = g[2] = g[3] = g[4] = sigmai - 14000 # <= 14000 # FIXME Verify value of sigmai
+  # x = [60, 3, 55, 3.1, 50, 2.6, 45.5507, 2.2837, 35.0631, 1.7532]
 
-  g[5] = g[6] = g[7] = g[8] = g[9] = x[0] / x[1] - 20 # <= 20
-  g[10] = delta - 2.7 # <= 2.7
+  objectiveFunction = 100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9])
+  # v = []
+  # v.append(100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9]))
 
+  g[0] = 6*25000000/(x[0]*(x[1]*x[1])) - 14000
+  g[1] = 6*20000000/(x[2]*(x[3]*x[3])) - 14000
+  g[2] = 6*15000000/(x[4]*(x[5]*x[5])) - 14000
+  g[3] = 6*10000000/(x[6]*(x[7]*x[7])) - 14000
+  g[4] = 6*5000000/(x[8]*(x[9]*x[9])) - 14000
+  g[5] = (x[1]/x[0]) - 20
+  g[6] = (x[3]/x[2]) - 20
+  g[7] = (x[5]/x[4]) - 20
+  g[8] = (x[7]/x[6]) - 20
+  g[9] = (x[9]/x[8]) - 20
+
+  aj1 = x[0]*(np.power(x[1], 3))/12
+  aj2 = x[2]*(np.power(x[3], 3))/12
+  aj3 = x[4]*(np.power(x[5], 3))/12
+  aj4 = x[6]*(np.power(x[7], 3))/12
+  aj5 = x[8]*(np.power(x[9], 3))/12
+  g[10] = (0.0025/3)*( (1000000/aj5) + (7000000/aj4) + (19000000/aj3) + (37000000/aj2) + (61000000/aj1) ) - 2.7
+
+  # print("Objective Function: {}".format(objectiveFunction))
+  # print("g: {}".format(g))
+  # sys.exit("Vlw")
   return objectiveFunction, g, h
 
 def executeFunction(function, x, objFunc, g, h):
   if function == 21:
-    objFunc, g, h = f01(x, objFunc, g, h)
+    objFunc, g, h = tensionCompressionSpring(x, objFunc, g, h) # 36k maxEval
   elif function == 22:
-    objFunc, g, h = f02(x, objFunc, g, h)
+    objFunc, g, h = speedReducer(x, objFunc, g, h) # 36k maxEval
   elif function == 23:
-    objFunc, g, h = f03(x, objFunc, g, h)
+    objFunc, g, h = weldedBeam(x, objFunc, g, h) # 320k maxEval
   elif function == 24:
-    objFunc, g, h = f04(x, objFunc, g, h)
+    objFunc, g, h = pressureVesel(x, objFunc, g, h) # 80k maxEval
   elif function == 25:
-    objFunc, g, h = f05(x, objFunc, g, h)
+    objFunc, g, h = cantileverBeam(x, objFunc, g, h) # 35k maxEval
   else:
     sys.exit("Function not defined.")
   return objFunc, g, h
