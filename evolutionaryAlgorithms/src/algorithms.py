@@ -19,12 +19,24 @@ import engineeringProblems
 import numpy as np
 import timeit
 import operator as op # For sorting population
+import warnings
+warnings.filterwarnings("error", category=RuntimeWarning)
 from copy import deepcopy
-
+# np.seterr(all='raise')
 
 # Constants
 DEB = "DEB"
 APM = "APM"
+
+AlGORITHM_PARAMS = {
+  "function": None,
+  "parentsSize": None,
+  "offspringsSize": None,
+  "seed": None,
+  "maxFe": None,
+  "constraintHandling": None,
+  "case": None
+}
 
 
 
@@ -57,6 +69,7 @@ class Population(object):
   def __init__(self, nSize, popSize, function, objFunctionSize, lowerBound, upperBound, gSize, hSize):
     strFunction = str(function)
     self.individuals = []
+    self.cmaRestart = False
     for _ in range(popSize):
       n = []
       objFunc = [99999 for i in range(objFunctionSize)]
@@ -279,6 +292,11 @@ class Population(object):
       elif function == 24: # The Pressure Vessel design
         nMinList = [0.0625, 0.0625, 10, 10]
         nMaxList = [5, 5, 200, 200]
+      # elif function == 25: # The Cantilever Beam design
+      #   nMinList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
+      #   nMinList = [h1, b1, , b2, h3, b3, h4, b4, h5, b5]
+      #   # nMaxList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
+      #   nMaxList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
       else:
         sys.exit("Function not defined.")
     elif strFunction[0] == "3": # Cec 2020 bound constrained functions
@@ -536,50 +554,106 @@ class Population(object):
     self.moveArzToPop(l2d)
 
   def cmaUpdateCovarianceMatrix(self, parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN,BD):
-    nSize = len(self.individuals[0].n)
-    populationList2d = self.selectMuIndividuals(mu)
-    old_centroid = centroid
-    centroid = np.dot(weights, populationList2d) # Recombination
+    # nSize = len(self.individuals[0].n)
+    # populationList2d = self.selectMuIndividuals(mu)
+    # old_centroid = centroid
+    # centroid = np.dot(weights, populationList2d) # Recombination
 
-    c_diff = centroid - old_centroid
+    # c_diff = centroid - old_centroid
 
-    # Cumulation : update evolution paths
-    ps = (1 - cs) * ps \
-        + np.sqrt(cs * (2 - cs) * mueff) / sigma \
-        * np.dot(B, (1. / diagD) *
-                    np.dot(B.T, c_diff))
+    # # Cumulation : update evolution paths
+    # ps = (1 - cs) * ps \
+    #     + np.sqrt(cs * (2 - cs) * mueff) / sigma \
+    #     * np.dot(B, (1. / diagD) *
+    #                 np.dot(B.T, c_diff))
 
-    hsig = float((np.linalg.norm(ps) /
-                  np.sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
-                  (1.4 + 2. / (nSize + 1.))))
+    # hsig = float((np.linalg.norm(ps) /
+    #               np.sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
+    #               (1.4 + 2. / (nSize + 1.))))
 
-    update_count += 1
+    # update_count += 1
 
-    pc = (1 - cc) * pc + hsig \
-        * np.sqrt(cc * (2 - cc) * mueff) / sigma \
-        * c_diff
+    # pc = (1 - cc) * pc + hsig \
+    #     * np.sqrt(cc * (2 - cc) * mueff) / sigma \
+    #     * c_diff
 
-    # Update covariance matrix
-    artmp = populationList2d - old_centroid
-    C = (1 - ccov1 - ccovmu + (1 - hsig) *
-              ccov1 * cc * (2 - cc)) * C \
-        + ccov1 * np.outer(pc, pc) \
-        + ccovmu * np.dot((weights * artmp.T), artmp) \
-        / sigma ** 2
+    # # Update covariance matrix
+    # artmp = populationList2d - old_centroid
+    # C = (1 - ccov1 - ccovmu + (1 - hsig) *
+    #           ccov1 * cc * (2 - cc)) * C \
+    #     + ccov1 * np.outer(pc, pc) \
+    #     + ccovmu * np.dot((weights * artmp.T), artmp) \
+    #     / sigma ** 2
 
-    # Adapt step-size sigma
-    sigma *= np.exp((np.linalg.norm(ps) / chiN - 1.) *
-                            cs / damps)
+    # # Adapt step-size sigma
+    # sigma *= np.exp((np.linalg.norm(ps) / chiN - 1.) *
+    #                         cs / damps)
 
-    diagD, B = np.linalg.eigh(C)
-    indx = np.argsort(diagD)
+    # diagD, B = np.linalg.eigh(C)
+    # indx = np.argsort(diagD)
 
-    cond = diagD[indx[-1]] / diagD[indx[0]]
+    # cond = diagD[indx[-1]] / diagD[indx[0]]
 
-    diagD = diagD[indx] ** 0.5
-    B = B[:, indx]
-    BD = B * diagD
-    return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
+    # diagD = diagD[indx] ** 0.5
+    # B = B[:, indx]
+    # BD = B * diagD
+    # return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
+    try:
+      # print("sellf.printsbest INICIO TRY: {}".format(self.printBest(True, AlGORITHM_PARAMS["constraintHandling"], True)))
+      nSize = len(self.individuals[0].n)
+      populationList2d = self.selectMuIndividuals(mu)
+      old_centroid = centroid
+      centroid = np.dot(weights, populationList2d) # Recombination
+
+      c_diff = centroid - old_centroid
+
+      # Cumulation : update evolution paths
+      ps = (1 - cs) * ps \
+          + np.sqrt(cs * (2 - cs) * mueff) / sigma \
+          * np.dot(B, (1. / diagD) *
+                      np.dot(B.T, c_diff))
+
+      hsig = float((np.linalg.norm(ps) /
+                    np.sqrt(1. - (1. - cs) ** (2. * (update_count + 1.))) / chiN <
+                    (1.4 + 2. / (nSize + 1.))))
+
+      update_count += 1
+
+      pc = (1 - cc) * pc + hsig \
+          * np.sqrt(cc * (2 - cc) * mueff) / sigma \
+          * c_diff
+
+      # Update covariance matrix
+      artmp = populationList2d - old_centroid
+      C = (1 - ccov1 - ccovmu + (1 - hsig) *
+                ccov1 * cc * (2 - cc)) * C \
+          + ccov1 * np.outer(pc, pc) \
+          + ccovmu * np.dot((weights * artmp.T), artmp) \
+          / sigma ** 2
+
+      # Adapt step-size sigma
+      sigma *= np.exp((np.linalg.norm(ps) / chiN - 1.) *
+                              cs / damps)
+
+      diagD, B = np.linalg.eigh(C)
+      indx = np.argsort(diagD)
+
+      cond = diagD[indx[-1]] / diagD[indx[0]]
+      # print("diagD: {}".format(type(diagD)))
+      # print("diagD[indx]: {}".format(diagD[indx]))
+      # diagD = diagD[indx] ** 0.5
+      diagD = np.power(diagD[indx], 0.5)
+      # print("não CONTINUA")
+      B = B[:, indx]
+      BD = B * diagD
+      # print("sellf.printsbest FINAL TRY: {}".format(self.printBest(True, AlGORITHM_PARAMS["constraintHandling"], True)))
+      return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
+    except (RuntimeWarning, RuntimeError, TypeError, np.linalg.LinAlgError):
+    # except:
+      print("Covariance matrix did not converge. Restarting algorithm")
+      self.cmaRestart = True
+
+
 
 # Print(population) is shown as string and not memory reference
   def __repr__(self):
@@ -595,6 +669,7 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
     feasibiliyMeasure = "Fitness"
   else:
     sys.exit("Constraint handling method not defined.")
+  print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("Algorithm: {}".format(algorithm))
   print("Constrainth handling method: {}".format(constraintHandling))
   print("Function: {}".format(function))
@@ -609,11 +684,14 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("ngen ObjectiveFunction {} ProjectVariables".format(feasibiliyMeasure))
 
-def printFinalPopulationInfo(status, population, hof, constraintHandling):
+def printFinalPopulationInfo(status, population, hof, constraintHandling, bestFromLastPopulation):
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("Status: {}".format(status))
   print("Last individual")
-  population.printBest(True, constraintHandling, True)
+  if (bestFromLastPopulation is not None):
+    bestFromLastPopulation.printIndividual(True, constraintsInitParams, True)
+  else:
+    population.printBest(True, constraintHandling, True)
   print("Hall of fame")
   hof.printIndividual(True, constraintHandling, True)
 
@@ -844,8 +922,11 @@ def populationPick(parentIdx, parentsSize):
         chosenOnes.append(idx)
   return chosenOnes
 
+def biribiri(param):
+  print("Tio tá ai?  {}".format(param))
+
 # Differential evolution
-def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case):
+def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval):
   np.random.seed(seed)
   strFunction = str(function)
   feval = 0
@@ -891,6 +972,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
     parents.deGeneratePopulation(offsprings, generatedOffspring, CR, F)
     # Check bounds and evaluate offsprings
     offsprings.checkBounds(function, lowerBound, upperBound)
+    print(' hm')
     feval = offsprings.evaluate(function, feval, truss, case, discreteSet)
     # Handling constraints, if necessary
     if constraintHandling:
@@ -905,16 +987,20 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
     # Prints best individual of current generation
     parents.printBest(True, constraintHandling, True)
   status = "Finished"
-  printFinalPopulationInfo(status, parents, hof, constraintHandling)
+  printFinalPopulationInfo(status, parents, hof, constraintHandling, None)
 
 # CMA ES TODO Not working for problem 22 (not converging)
-def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case):
+def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval):
   np.random.seed(seed)
   strFunction = str(function)
-  feval = 0
+  # feval = 0
   hof = None
   discreteSet = None
   status="Initializing"
+
+
+  # print(AlGORITHM_PARAMS)
+  # sys.exit("aff")
 
   if strFunction[0] == "3": # cec2020 bound constrained
     maxFe = defineMaxEval(function, nSize)
@@ -933,6 +1019,19 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   # Initialize all cmaes params
   parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
 
+  global AlGORITHM_PARAMS 
+  AlGORITHM_PARAMS = {
+    "function": function,
+    "nSize": nSize,
+    "parentsSize": parentsSize,
+    "offspringsSize": offspringsSize,
+    "seed": seed,
+    "maxFe": maxFe,
+    "constraintHandling": constraintHandling,
+    "case": case,
+    "feval": feval
+  }
+
   # Generate initial population
   parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 
@@ -944,10 +1043,20 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   if feval > maxFe:
     sys.exit("Maximum number of function evaluations too low.")
   while feval < maxFe:
+    AlGORITHM_PARAMS["feval"] = feval 
     status = "Executing"
-    print(feval, end=" ")
+    if parents.individuals[0].fitness is not None:
+      bestFromLastPopulation = parents.bestIndividual(constraintHandling)
     # Generate new population
     parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
+
+    for individual in parents.individuals:
+      if(np.isnan(individual.objectiveFunction).any() or np.isnan(individual.violationSum).any() or np.isnan(individual.n).any()):
+        print("não plz")
+        parents.cmaRestart = True
+        printFinalPopulationInfo(status, parents, hof, constraintHandling, bestFromLastPopulation)
+        break
+
     # Check bounds and evaluate
     parents.checkBounds(function, lowerBound, upperBound)
     feval = parents.evaluate(function, feval, truss, case, discreteSet)
@@ -957,20 +1066,37 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     if constraintHandling:
       avgObjFunc = parents.handleConstraints(None, constraintHandling, constraintsSize, penaltyCoefficients, avgObjFunc)
   
+
     # Sorts population
     parents.sort(None, constraintHandling)
+
+    # Prints generation and its best individual
+    print(feval, end=" ")
+    parents.printBest(True, constraintHandling, True)
 
     # Gets hall of fame individual
     hof = parents.hallOfFame(hof, constraintHandling)
 
     # Update covariance matrix strategy from the population
-    centroid, sigma, pc, ps, B, diagD, C, update_count, BD = parents.cmaUpdateCovarianceMatrix(
-      parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
-      ps, B, diagD, C, update_count, chiN, BD
-    )
+    try:
+      centroid, sigma, pc, ps, B, diagD, C, update_count, BD = parents.cmaUpdateCovarianceMatrix(
+        parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
+        ps, B, diagD, C, update_count, chiN, BD
+      )
+    except:
+    # except (RuntimeWarning, RuntimeError, TypeError, np.linalg.LinAlgError):
+      break
 
-    # Prints best individual of current generation
-    parents.printBest(True, constraintHandling, True)
+
+
+  # Need to restart algorithm?
+  if parents.cmaRestart:
+    CMAES(AlGORITHM_PARAMS["function"], AlGORITHM_PARAMS["nSize"], AlGORITHM_PARAMS["parentsSize"],
+      AlGORITHM_PARAMS["offspringsSize"], AlGORITHM_PARAMS["seed"], AlGORITHM_PARAMS["maxFe"], 
+      AlGORITHM_PARAMS["constraintHandling"], AlGORITHM_PARAMS["case"], AlGORITHM_PARAMS["feval"])
+
   status = "Finished"
   # Prints final info
-  printFinalPopulationInfo(status, parents, hof, constraintHandling)
+  printFinalPopulationInfo(status, parents, hof, constraintHandling, None)
+  # print("CPU time used (seconds)")
+  # print("666")
