@@ -5,159 +5,328 @@ import os
 import sys
 from pathlib import Path
 
-def readResults(individualToPick):
-  if individualToPick == "hof":
+PROBLEMS_TYPE = "Trusses" # Trusses | Other Engineering
+SELECTED_INDIVIDUAL = "Last" # Last | Hof
+TRUSS_CASE = "Continuous" # Continuous | Discrete
+
+def readResults(individualToPick, problemsType):
+  if individualToPick == "Hof":
     individualToPick = "Hall of fame"
-  elif individualToPick == "last":
+  elif individualToPick == "Last":
     individualToPick = "Last individual"
   else:
     sys.exit("Individual to pick not defined.")
 
   algorithms = ["DE", "CMAES"]
-  functions = [10, 25, 60, 72, 942]
+  if problemsType == "Trusses":
+    functions = [10, 25, 60, 72, 942]
+  elif problemsType == "Other Engineering":
+    functions = [21, 22, 23, 24, 25] # Other engineering problems
+
+
   constraintHandlingMethods = ["DEB", "APM"]
   seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
   , 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-  # seeds = [1, 2, 3, 4, 5]
+  # seeds = [1, 2]
 
-  basePath =  Path(__file__).parent
+  basePath = Path(__file__).parent
 
   solutions = []
   for f in (functions): # Functions
-    dataOfFuction = []
+    dataOfFunction = []
     for a in (algorithms): # Algorithms
       for p in (constraintHandlingMethods): # Constraint handling methods
         for s in (seeds): # Seeds
           tempData = []
-          filePath = (basePath / "../results/t{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve()
+          # filePath = (basePath / "../results/t{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve() # Trusses
+          filePath = (basePath / "../results/f{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve()
           file = open(filePath)
+          countFactibleInd = 0
           while True:
             buffer = file.readline()
             if individualToPick in buffer: # Find individual for data analysis
+              hasFactibleSolution = True
+              updateBestIndividual = False
               buffer = file.readline() # Read one more
               buffer = buffer.split(" ")
+              # Verify if solution is feasible
               if p == "DEB":
                 if float(buffer[1]) != 0:
-                  sys.exit("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                  hasFactibleSolution = False
+                  # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
               elif p == "APM":
                 if float(buffer[0]) != float(buffer[1]):
-                  sys.exit("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-              for item in buffer:
-                tempData.append(float(item))
+                  hasFactibleSolution = False
+                  # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
               
+              # Only saves individual if its factible
+              if hasFactibleSolution:
+                # print("Another factible individual: {}: {}+{}+s{}".format(f, a, p, s))
+                for key, item in enumerate(buffer):
+                  # First individual to be inserted on tempData, just insert it
+                  if countFactibleInd == 0:
+                    tempData.append(float(item))
+                  else:
+                    if key == 0: # First buffer item
+                      if float(item) < tempData[-len(buffer)]: # Ojbective function from new individual is better than old one
+                        # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                        # print("tempData before cleaning: {}".format(tempData))
+                        tempData = tempData[:-len(buffer)] # Remove last individual
+                        # print("tempData after cleaning: {}".format(tempData))
+                        updateBestIndividual = True
+                      else: # If new individual is worst than old one, dont need go through the buffer array
+                        break
+                    if updateBestIndividual: # If individual has to be updated
+                      # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                      tempData.append(float(item))
+                countFactibleInd += 1
+
+            # Read time and go to next one
             elif "CPU time used" in buffer:
-              buffer = file.readline()
-              tempData.append(float(buffer))
-              tempData.append("Problem{}_{}+{}".format(f, a, p)) # TODO Verify is this works
-              # tempData.append("{}_f{}_p{}".format(a, f, p)) # Old line, works
-              dataOfFuction.append(tempData)
+              # Only get CPU time and algorithm name that algorithm got at least one factible solution
+              if countFactibleInd != 0: 
+                buffer = file.readline()
+                tempData.append(float(buffer))
+                tempData.append("Problem{}_{}+{}".format(f, a, p)) # TODO Verify is this works
+                # tempData.append("{}_f{}_p{}".format(a, f, p)) # Old line, works
+                dataOfFunction.append(tempData)
               break
     # Each list from solutions contains the data for each function
-    solutions.append(dataOfFuction)
-  return solutions
+    solutions.append(dataOfFunction)
 
-# Get style (css) for tables
-def getTableStyle():
-  th_props = [
-      ('font-size', '18px'),
-      ('font-family', 'monospace'),
-      ('text-align', 'center'),
-      # ('background-color', '#f7f7f9'),
-      ('text-align', 'center')
-  ]
+  # print("Solutions:")
+  # print(*solutions)
+  # sys.exit("Printing final solutions, thanks!")
+  return solutions, functions
 
-  td_props = [
-    ('font-size', '16px'),
-    ('font-family', 'monospace'),
-    ('padding', '10px'),
-    ('padding-top', '25px'),
-    ('text-align', 'center')
-  ]
+def getExtraResultsFixed(np2dArr, rowsTitles, index, case, functions):
+  for f in functions:
+    # Trusses problems
+    if f == 10: # 10 bar truss
+      if case == "Continuous":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70, "-"] 
+        duvde = ["DUVDE*", 5060.85, float("NaN"), 5067.18, 7.94e+00, 5076.66, "-"] 
+        apm = ["APM*", 5069.08, float("NaN"), 5091.43, float("NaN"), 5117.39, "-"]
 
-  title_props = [
-    ('font-size', '24px'),
-    ('font-family', 'monospace'),
-    ('text-align', 'center'),
-    ('font-weight', 'bold'),
-    ("margin-bottom", "30px"),
-    ("margin-top", "30px")
-  ]
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+        rowsTitles.append(duvde[0])
+        rowsTitles.append(apm[0])
 
-  styles = [
-    dict(selector="th", props=th_props),
-    dict(selector="td", props=td_props),
-    dict(selector="caption", props=title_props)
-  ]
-  return styles
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
+      elif case == "Discrete":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30, 666]
+        duvde = ["DUVDE*", 5562.35, float("NaN"), 5564.90, 0.6, 5565.04, 666]
+        apm = ["APM*", 5490.74, float("NaN"), 5545.48, float("NaN"), 5567.84, 666]
 
-def getKrampserResults(grouped, index, case):
-  # Maxfe = 15k continuous
-  if index == 0: # t10
-    if case == "continuous":
-      tableTitle = "10-bar truss problem, NEvals: 15000 | DUVDE e APM: NEvals: 280000"
-      grouped.loc[4] = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70] # Append row at dataFrame
-      grouped.loc[5] = ["DUVDE*", 5060.85, None, 5067.18, 7.94e+00, 5076.66] # Append row at dataFrame
-      grouped.loc[6] = ["APM*", 5069.08, None, 5091.43, None, 5117.39] # Append row at dataFrame
-    elif case == "discrete":
-      tableTitle = "10-bar truss problem, NEvals: 15000 | DUVDE NEvals: 24000 e APM NEvals: 90000"
-      grouped.loc[4] = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30] # Append row at dataFrame
-      grouped.loc[5] = ["DUVDE*", 5562.35, None, 5564.90, 0.6, 5565.04] # Append row at dataFrame  24k
-      grouped.loc[6] = ["APM*", 5490.74, None, 5545.48, None, 5567.84] # Append row at dataFrame 90k
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+        rowsTitles.append(duvde[0])
+        rowsTitles.append(apm[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
+      else:
+        sys.exit("Case not defined.")
+    elif f == 25: # 25 bar truss
+      if case == "Continuous":
+        # Define algorithms and literature results
+        smde= ["SMDE k=2*", 484.06, 484.07, 484.07, 0.0107, 484.10]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0) # Appends values of given list (remove first index, which is the string)
+      elif case == "Discrete":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 484.85, 485.05, 485.44, 0.693, 487.13]
+        duvde = ["DUVDE*", 485.90, float("NaN"), 498.44, 7.66e+00, 507.77]
+        apm = ["APM*", 485.85, float("NaN"), 485.97, float("NaN"), 490.74]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+        rowsTitles.append(duvde[0])
+        rowsTitles.append(apm[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
+      else:
+        sys.exit("Case not defined.")
+    elif f == 60: # 60 bar truss
+      if case == "Continuous":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 308.94, 309.42, 309.49, 0.464, 311.21]
+        duvde = ["DUVDE", 309.44, float("NaN"), 311.54, 1.46e+00, 314.70]
+        apm = ["APM", 311.87, float("NaN"), 333.01, float("NaN"), 384.19]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+        rowsTitles.append(duvde[0])
+        rowsTitles.append(apm[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
+      elif case == "Discrete":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 312.73, 314.20, 315.12, 3.98e+00, 335.88]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+      else:
+        sys.exit("Case not defined.")
+    elif f == 72: # 72 bar truss
+      if case == "Continuous":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 379.62, 379.63, 379.65, 0.0341, 379.73]
+        duvde = ["DUVDE", 379.66, float("NaN"), 380.42, 0.572, 381.37]
+        apm = ["APM", 387.04, float("NaN"), 402.59, float("NaN"), 432.95]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+        rowsTitles.append(duvde[0])
+        rowsTitles.append(apm[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
+        np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
+      elif case == "Discrete":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 385.54, 386.81, 386.91, 1.05e+00, 389.21]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+      else:
+        sys.exit("Case not defined.")
+    elif f == 942: # 942 bar truss
+      if case == "Continuous":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 149932.00, 171218.50, 174369.63, 1.72e+04, 230139.00]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+      elif case == "Discrete":
+        # Define algorithms and literature results
+        smde = ["SMDE k=2*", 153010.00, 181899.00, 181127.23, 1.73e+04, 216514.00]
+
+        # Append name of algorihtms
+        rowsTitles.append(smde[0])
+
+        # Append reults on np2darr
+        np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
+      else:
+        sys.exit("Case not defined.")
+    # Other Engineering Problems
+    elif f == 21: # Tension/compression spring
+      # Define algorithms and literature results
+      proposedAISGA = ["Proposed AIS-GA", 0.012666, 0.012892, 0.013131, 6.28E−4, 0.015318, 50] 
+      apmSpor = ["APM_SPOR", 0.012667602164, "-", 0.013748492439, "-", 0.017093902154, "-"]
+      apmMed3 = ["APM_MED_3", 0.01266, 0.01312, 0.01389 , 9.1731e-03, 0.01777, 35]
+
+      # Append name of algorihtms
+      rowsTitles.append(proposedAISGA[0])
+      rowsTitles.append(apmSpor[0])
+      rowsTitles.append(apmMed3[0])
+
+      # Append reults on np2darr
+      np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+    elif f == 22: # Speed reducer
+      # Define algorithms and literature results
+      proposedAISGA = ["Proposed AIS-GA", 2996.3483, 2996.3495, 2996.3501, 7.45E−3, 2996.3599, 50] 
+      apmSpor = ["APM_SPOR", 2996.34850933205, "-", 2996.35243640334, "-", 2996.36609677358, "-"]
+      apmMed3 = ["APM_MED_3", 2996.3622 , 2996.3780, 2999.6083, 3.4911e+01, 3016.7808, 35]
+
+      # Append name of algorihtms
+      rowsTitles.append(proposedAISGA[0])
+      rowsTitles.append(apmSpor[0])
+      rowsTitles.append(apmMed3[0])
+
+      # Append reults on np2darr
+      np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+    elif f == 23: # Welded beam
+      # Define algorithms and literature results
+      proposedAISGA = ["Proposed AIS-GA", 2.38335, 2.92121, 2.99298, 2.02E−1, 4.05600, 50] 
+      apmSpor = ["APM_SPOR", 2.38113481849464 , "-", 2.58228221674671 , "-", 3.20898593483156, "-"]
+      apmMed3 = ["APM_MED_3", 2.38114 , 2.43315, 2.67102, 2.0656e+00, 3.46638, 35]
+
+      # Append name of algorihtms
+      rowsTitles.append(proposedAISGA[0])
+      rowsTitles.append(apmSpor[0])
+      rowsTitles.append(apmMed3[0])
+
+      # Append reults on np2darr
+      np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+      np2dArr = np.append(apmMed3, [apmSpor[1:]], axis=0)
+    elif f == 24: # Pressure Vesel
+      # Define algorithms and literature results
+      proposedAISGA = ["Proposed AIS-GA", 6059.855, 6426.710, 6545.126, 1.24E+2, 7388.160, 50] 
+      apmSpor = ["APM_SPOR", 6059.73045731256 , "-", 6581.18398763114 , "-", 7333.93495942434, "-"]
+      apmMed3 = ["APM_MED_3", 6059.7143 , 6370.7797, 6427.6676, 2.6221e+03, 7544.4925, 35]
+
+      # Append name of algorihtms
+      rowsTitles.append(proposedAISGA[0])
+      rowsTitles.append(apmSpor[0])
+      rowsTitles.append(apmMed3[0])
+
+      # Append reults on np2darr
+      np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+    elif f == 25:
+      # Define algorithms and literature results
+      proposedAISGA = ["Proposed AIS-GA", 64834.70, 74987.16, 76004.24, 6.93E+3, 102981.06, 50] 
+      # best median avg std worst
+      apmSpor = ["APM_SPOR", 64599.980343 , "-", 66684.276327 , "-", 72876.210779, "-"]
+      apmMed3 = ["APM_MED_3", 64578.271, 68294.702, 71817.816, 1.0431e+05, 173520.325, 35]
+
+      # Append name of algorihtms
+      rowsTitles.append(proposedAISGA[0])
+      rowsTitles.append(apmSpor[0])
+      rowsTitles.append(apmMed3[0])
+
+      # Append reults on np2darr
+      np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+      np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
     else:
-      sys.exit("Case not defined.")
-  elif index == 1: # t25
-    if case == "continuous":
-      tableTitle = "25-bar truss problem, NEvals: 15000"
-      grouped.loc[4] = ["SMDE k=2*", 484.06, 484.07, 484.07, 0.0107, 484.10] # Append row at dataFrame
-    elif case == "discrete":
-      tableTitle = "25-bar truss problem, NEvals: 15000 | DUVDE e APM: NEvals: 20000"
-      grouped.loc[4] = ["SMDE k=2*", 484.85, 485.05, 485.44, 0.693, 487.13] # Append row at dataFrame
-      grouped.loc[5] = ["DUVDE*", 485.90, None, 498.44, 7.66e+00, 507.77] # Append row at dataFrame 20k
-      grouped.loc[6] = ["APM*", 485.85, None, 485.97, None, 490.74] # Append row at dataFrame 20k
-  elif index == 2: # t60
-    if case == "continuous":
-      tableTitle = "60-bar truss problem, NEvals: 15000 | DUVDE NEvals:150000 e APM NEvals: 800000"
-      grouped.loc[4] = ["SMDE k=2*", 308.94, 309.42, 309.49, 0.464, 311.21] # Append row at dataFrame
-      grouped.loc[5] = ["DUVDE", 309.44, None, 311.54, 1.46e+00, 314.70] # Append row at dataFrame
-      grouped.loc[6] = ["APM", 311.87, None, 333.01, None, 384.19] # Append row at dataFrame
-    elif case == "discrete":
-      tableTitle = "60-bar truss problem, NEvals: 15000"
-      grouped.loc[4] = ["SMDE k=2*", 312.73, 314.20, 315.12, 3.98e+00, 335.88] # Append row at dataFrame
-    else:
-      sys.exit("Case not defined.")
-  elif index == 3: # t72
-    if case == "continuous":
-      tableTitle = "72-bar truss problem, NEvals: 15000 | DUVDE e APM: NEvals: 35000"
-      grouped.loc[4] = ["SMDE k=2*", 379.62, 379.63, 379.65, 0.0341, 379.73] # Append row at dataFrame
-      grouped.loc[5] = ["DUVDE", 379.66, None, 380.42, 0.572, 381.37] # Append row at dataFrame
-      grouped.loc[6] = ["APM", 387.04, None, 402.59, None, 432.95] # Append row at dataFrame
-    elif case == "discrete":
-      tableTitle = "72-bar truss problem, NEvals: 15000"
-      grouped.loc[4] = ["SMDE k=2*", 385.54, 386.81, 386.91, 1.05e+00, 389.21] # Append row at dataFrame
-    else:
-      sys.exit("Case not defined.")
-  elif index == 4: # t942
-    if case == "continuous":
-      tableTitle = "942-bar truss problem, NEvals: 15000"
-      grouped.loc[4] = ["SMDE k=2*", 149932.00, 171218.50, 174369.63, 1.72e+04, 230139.00] # Append row at dataFrame
-    elif case == "discrete":
-      tableTitle = "942-bar truss problem, NEvals: 15000"
-      grouped.loc[4] = ["SMDE k=2*", 153010.00, 181899.00, 181127.23, 1.73e+04, 216514.00] # Append row at dataFrame
-    else:
-      sys.exit("Case not defined.")
-  else:
-    sys.exit("Index not defined.")
-  return grouped, tableTitle
+      sys.exit("Function not defined.")
 
-def getExtraResults(np2dArr, rowsTitles, index, case):
+
+def getExtraResults(np2dArr, rowsTitles, index, case,):
   # Maxfe = 15k continuous
   if index == 0: # t10
     if case == "continuous":
       # tableTitle = "10-bar truss problem, NEvals: 15000 | DUVDE e APM: NEvals: 280000"
       # Define algorithms and results
-      smde = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70] 
-      duvde = ["DUVDE*", 5060.85, float("NaN"), 5067.18, 7.94e+00, 5076.66] 
-      apm = ["APM*", 5069.08, float("NaN"), 5091.43, float("NaN"), 5117.39]
+      smde = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70, "-"] 
+      duvde = ["DUVDE*", 5060.85, float("NaN"), 5067.18, 7.94e+00, 5076.66, "-"] 
+      apm = ["APM*", 5069.08, float("NaN"), 5091.43, float("NaN"), 5117.39, "-"]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -169,9 +338,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case):
       np2dArr = np.append(np2dArr, [duvde[1:]], axis=0)
       np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
     elif case == "discrete":
-      smde = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30]
-      duvde = ["DUVDE*", 5562.35, float("NaN"), 5564.90, 0.6, 5565.04]
-      apm = ["APM*", 5490.74, float("NaN"), 5545.48, float("NaN"), 5567.84]
+      smde = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30, 666]
+      duvde = ["DUVDE*", 5562.35, float("NaN"), 5564.90, 0.6, 5565.04, 666]
+      apm = ["APM*", 5490.74, float("NaN"), 5545.48, float("NaN"), 5567.84, 666]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -285,107 +454,11 @@ def getExtraResults(np2dArr, rowsTitles, index, case):
       sys.exit("Case not defined.")
   else:
     sys.exit("Index not defined.")
+
   return np2dArr, rowsTitles
 
-# Generates in html
-def makeAnalysisHtml(solutions):
-  # Read solutions and store on dataframe
-  case="discrete"
-  for index, solution in enumerate(solutions):
-    df = pd.DataFrame.from_records(solution)
-    titles = ["Objective Function", "ViolationSum/Fitness"]
-    # Define name for columns of the project variables
-    for i in range(len(df.columns)-4):
-      titles.append("ProjVar{}".format(i))
-    # Define name for the last 2 columns
-    titles.append("CPU Time(s)")
-    titles.append("Algorithm")
-    # Name columns
-    df.columns = titles
-
-    # Drop columns that contains word | Could be done with df.filter(regex)
-    df.drop([col for col in df.columns if "ProjVar" in col], axis=1, inplace=True)
-    df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
-    df.drop([col for col in df.columns if "CPU Time" in col], axis=1,inplace=True)
-
-    # pd.set_option("display.float_format","{:e}".format) # Use scientific notation as format
-    pd.set_option("display.float_format","{:.2f}".format)
-    # Group by algorithm 
-    grouped = df.groupby(["Algorithm"])
-    grouped = grouped.agg(["min", "median", "mean", np.std, "max"]).reset_index(level="Algorithm") # Need to reset index for append new column
-    # grouped = grouped.agg(["min", "median", "mean", "std", "max"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
-
-    # print(grouped)
-    # grouped.loc[4] = ["Alg1", 5070.00, 15, 5060, 5080] # Append row at dataFrame
-    # Maxfe = 15k continuous
-    # if(index == 0): # t10
-    #   grouped.loc[4] = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70] # Append row at dataFrame
-    #   grouped.loc[5] = ["DUVDE*", 5060.85, None, 5067.18, 7.94e+00, 5076.66] # Append row at dataFrame
-    #   grouped.loc[6] = ["APM*", 5069.08, None, 5091.43, None, 5117.39] # Append row at dataFrame
-    # elif(index == 1): # t25
-    #   grouped.loc[4] = ["SMDE k=2*", 484.06, 484.07, 484.07, 0.0107, 484.10] # Append row at dataFrame
-    # elif(index == 2): # t60
-    #   grouped.loc[4] = ["SMDE k=2*", 308.94, 309.42, 309.49, 0.464, 311.21] # Append row at dataFrame
-    #   grouped.loc[5] = ["DUVDE", 309.44, None, 311.54, 1.46e+00, 314.70] # Append row at dataFrame
-    #   grouped.loc[6] = ["APM", 311.87, None, 333.01, None, 384.19] # Append row at dataFrame
-    # elif(index == 3): # t72
-    #   grouped.loc[4] = ["SMDE k=2*", 379.62, 379.63, 379.65, 0.0341, 379.73] # Append row at dataFrame
-    #   grouped.loc[5] = ["DUVDE", 379.66, None, 380.42, 0.572, 381.37] # Append row at dataFrame
-    #   grouped.loc[6] = ["APM", 387.04, None, 402.59, None, 432.95] # Append row at dataFrame
-    # elif(index == 4): # t942
-    #   grouped.loc[4] = ["SMDE k=2*", 149932.00, 171218.50, 174369.63, 1.72e+04, 230139.00] # Append row at dataFrame
-    # else:
-    #   sys.exit("Index not defined.")
-
-
-    # # Maxfe = 15k discrete
-    # if(index == 0): # t10
-    #   grouped.loc[4] = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30] # Append row at dataFrame
-    #   grouped.loc[5] = ["DUVDE*", 5562.35, None, 5564.90, 0.6, 5565.04] # Append row at dataFrame  24k
-    #   grouped.loc[6] = ["APM*", 5490.74, None, 5545.48, None, 5567.84] # Append row at dataFrame 90k
-    # elif(index == 1): # t25
-    #   grouped.loc[4] = ["SMDE k=2*", 484.85, 485.05, 485.44, 0.693, 487.13] # Append row at dataFrame
-    #   grouped.loc[5] = ["DUVDE*", 485.90, None, 498.44, 7.66e+00, 507.77] # Append row at dataFrame 20k
-    #   grouped.loc[6] = ["APM*", 485.85, None, 485.97, None, 490.74] # Append row at dataFrame 20k
-    # elif(index == 2): # t60
-    #   grouped.loc[4] = ["SMDE k=2*", 312.73, 314.20, 315.12, 3.98e+00, 335.88] # Append row at dataFrame
-    # elif(index == 3): # t72
-    #   grouped.loc[4] = ["SMDE k=2*", 385.54, 386.81, 386.91, 1.05e+00, 389.21] # Append row at dataFrame
-    # elif(index == 4): # t942
-    #   grouped.loc[4] = ["SMDE k=2*", 153010.00, 181899.00, 181127.23, 1.73e+04, 216514.00] # Append row at dataFrame
-    # else:
-    #   sys.exit("Index not defined.")
-
-    grouped, tableTitle = getKrampserResults(grouped, index, case)
-
-    # grouped = grouped.drop("Algorithm", axis=1) # Drop algorithm columns
-
-    # grouped.index.names = ["Algorithm"] # Adds name on index column
-    # grouped.index=(["a", "b", "c", "d", "e"]) # Rename indexes from
-
-    # print(grouped)
-
-    # Gets styles for formatting table and apply on df
-    
-    styles = getTableStyle()
-    t = (grouped.style
-          .set_table_styles(styles)
-          .apply(highlight_min)
-          # .highlight_min()
-          .set_caption(tableTitle)
-          # .set_precision(2)
-          )
-
-    # Generates html+css table from dataframe
-    
-    print(t.render()) 
-    # break
-    
-    # df.to_csv('tableCsv.csv') # Exports dataframe to csv file
-    # df.to_latex('tableLatex.txt') #  Export dataframe to simple latex table
-
 # Generates statistical measures and generate .tex table
-def makeAnalysis(solutions):
+def makeAnalysis(solutions, functions):
   # Read solutions and store on dataframe
   case="discrete"
   for key, solution in enumerate(solutions):
@@ -393,7 +466,7 @@ def makeAnalysis(solutions):
     titles = ["Objective Function", "ViolationSum/Fitness"]
     # Define name for columns of the project variables
     for i in range(len(df.columns)-4):
-      titles.append("ProjVar{}".format(i))
+      titles.append("DesignVariables{}".format(i))
 
     # Define name for the last 2 columns
     titles.append("CPU Time(s)")
@@ -403,21 +476,24 @@ def makeAnalysis(solutions):
     df.columns = titles
 
     # Drop columns that contains word | Could be done with df.filter(regex)
-    df.drop([col for col in df.columns if "ProjVar" in col], axis=1, inplace=True)
+    df.drop([col for col in df.columns if "DesignVariables" in col], axis=1, inplace=True)
     df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
     df.drop([col for col in df.columns if "CPU Time" in col], axis=1,inplace=True)
 
     # Group by algorithm and calcualtes statistical measures
     grouped = df.groupby(["Algorithm"])
-    grouped = grouped.agg(["min", "median", "mean", "std", "max"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
-
+    grouped = grouped.agg(["min", "median", "mean", "std", "max", "size"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+    # grouped = grouped.agg(["min", "median", "mean", "std", "max", np.size]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+    print("grouped: {}".format(grouped))
     # Generates 2d np array from pandas grouped df
     np2dArr = grouped.to_numpy()
     # Get row and columns titles
     rowsTitles = list(grouped.index.values) 
     columnsTitles = list(grouped.columns.levels[1])
     # Get extra results (appending other algorithms on 2d np arr)
-    np2dArr, rowsTitles = getExtraResults(np2dArr, rowsTitles, key, case)
+    # np2dArr, rowsTitles = getExtraResults(np2dArr, rowsTitles, key, case)
+    np2dArr, rowsTitles = getExtraResultsFixed(np2dArr, rowsTitles, key, case, functions)
+    # sys.exit("thx")
     # Generates .text table
     np2dArrToLatex(np2dArr, columnsTitles, rowsTitles)
 
@@ -484,8 +560,8 @@ def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
   print()
 
 if __name__ == '__main__':
-  solutions = readResults("last")
-  makeAnalysis(solutions)
+  solutions, functions = readResults(SELECTED_INDIVIDUAL, PROBLEMS_TYPE)
+  makeAnalysis(solutions, functions)
 
 
 
