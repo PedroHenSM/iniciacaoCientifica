@@ -1,1 +1,7 @@
 results
+evolutionaryAlgorithms/resultsContinuous
+test.py
+deprecated
+*.pdf
+*.pyc
+__pycache__
