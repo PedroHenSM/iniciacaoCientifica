@@ -130,30 +130,31 @@ class Population(object):
             else:
               sys.exit("Design variable should not exist.")
           elif function == 25: # The Cantilever Beam design
-            # n[0] - n[4] -> h
-            # n[5] - n[9] -> b
-            if i == 0:
-              n.append(np.round(np.random.uniform(2.4, 3.1))) # FIXME Verify bounds
-            elif i == 1:
-              n.append(np.random.uniform(0, 60))
-            elif i == 2:
+            # n[0] -> h1 | n[1] -> b1 | n[2] -> h2 | n[3] -> b2 (...)
+            if i == 0: # b1
+              n.append(np.round(np.random.uniform(1, 5)))
+            elif i == 1: # h1
+              n.append(np.round(np.random.uniform(30, 65)))
+            elif i == 2: # b2
+              n.append(np.random.uniform(2.4, 3.1))
+            elif i == 3: # h2
               n.append(np.random.uniform(45, 60))
-            elif i == 3:
-              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
-            elif i == 4:
-              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
-            elif i == 5:
-              n.append(np.round(np.random.uniform(2.4, 3.1))) # FIXME Verify bounds
-            elif i == 6:
-              n.append(np.random.uniform(2.4, 3.1)) # FIXME Discrete values
-            elif i == 7:
-              n.append(np.random.uniform(2.4, 3.1)) # FIXME Discrete values
-            elif i == 8:
-              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
-            elif i == 9:
-              n.append(np.random.uniform(45, 60)) # FIXME Verify bounds
-            elif i == 10:
-              sys.exit("Verify this last constraint. Not implemented.")
+            elif i == 4: # b3
+              n.append(np.random.uniform(2.4, 3.1))
+            elif i == 5: # h3
+              n.append(np.random.uniform(45, 60))
+            elif i == 6: # b4
+              n.append(np.random.uniform(1, 5))
+            elif i == 7: # h4
+              n.append(np.random.uniform(30, 65))
+            elif i == 8: # b5
+              n.append(np.random.uniform(1, 5))
+            elif i == 9: # h5
+              n.append(np.random.uniform(30, 65))
+            else:
+              sys.exit("Design variable should not exist.")
+            # elif i == 10:
+            #   sys.exit("Verify this last constraint. Not implemented.")
           else:
             sys.exit("Function not defined.")
 
@@ -292,11 +293,9 @@ class Population(object):
       elif function == 24: # The Pressure Vessel design
         nMinList = [0.0625, 0.0625, 10, 10]
         nMaxList = [5, 5, 200, 200]
-      # elif function == 25: # The Cantilever Beam design
-      #   nMinList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
-      #   nMinList = [h1, b1, , b2, h3, b3, h4, b4, h5, b5]
-      #   # nMaxList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
-      #   nMaxList = [h1, b1, h2, b2, h3, b3, h4, b4, h5, b5]
+      elif function == 25: # The Cantilever Beam design
+        nMinList = [1, 30, 2.4, 45, 2.4, 45, 1, 30, 1, 30]
+        nMaxList = [5, 65, 3.1, 60, 3.1, 60, 5, 65, 5, 65]
       else:
         sys.exit("Function not defined.")
     elif strFunction[0] == "3": # Cec 2020 bound constrained functions
@@ -972,7 +971,6 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
     parents.deGeneratePopulation(offsprings, generatedOffspring, CR, F)
     # Check bounds and evaluate offsprings
     offsprings.checkBounds(function, lowerBound, upperBound)
-    print(' hm')
     feval = offsprings.evaluate(function, feval, truss, case, discreteSet)
     # Handling constraints, if necessary
     if constraintHandling:
