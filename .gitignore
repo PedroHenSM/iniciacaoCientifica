@@ -2,6 +2,7 @@ results
 evolutionaryAlgorithms/resultsContinuous
 test.py
 deprecated
+.vscode
 *.pdf
 *.pyc
 __pycache__
