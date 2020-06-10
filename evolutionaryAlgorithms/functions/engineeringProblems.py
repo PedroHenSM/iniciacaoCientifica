@@ -18,20 +18,22 @@ def tensionCompressionSpring(x, objFunc, g, h): # The tension/compression spring
 
 def speedReducer(x, objFunc, g, h): # The speed reducer design | 36k maxEval
   # x =[3.5, 0.7, 17, 7.3, 7.8, 3.350215, 5.286683] Best solution found by bernardino (08)
-  x[2] = np.round(x[2]) # This variable is integer
-  objectiveFunction = 0.7854 * x[0] * np.power(x[1], 2) * (3.3333 * np.power(x[2], 2) + 14.9334 * x[2] - 43.0934) - 1.508 * x[0] * (np.power(x[5], 2) + np.power(x[6], 2)) + 7.4777 * (np.power(x[5], 3) + np.power(x[6], 3)) + 0.7854 * (x[3] * np.power(x[5], 2) + x[4] * np.power(x[6],2)) # Weight
-  g[0] = 27 * np.float_power(x[0], -1) * np.float_power(x[1], -2) * np.float_power(x[2], -1) -1 # <= 1
-  g[1] = 397.5 * np.float_power(x[0], -1) * np.float_power(x[1], -2) * np.float_power(x[2], -2) -1 # <= 1
-  g[2] = 1.93 * np.float_power(x[1], -1) * np.float_power(x[2], -1) * np.power(x[3], 3) * np.float_power(x[5], -4) -1 # <= 1
+  # x[2] = np.round(x[2]) # This variable is integer
 
-  g[3] = 1.93 * np.float_power(x[1], -1) * np.float_power(x[2], -1) * np.power(x[3], 3) * np.float_power(x[5], -4) -1 # <= 1
+  intx2 = np.round(x[2])
+  objectiveFunction = 0.7854 * x[0] * np.power(x[1], 2) * (3.3333 * np.power(intx2, 2) + 14.9334 * intx2 - 43.0934) - 1.508 * x[0] * (np.power(x[5], 2) + np.power(x[6], 2)) + 7.4777 * (np.power(x[5], 3) + np.power(x[6], 3)) + 0.7854 * (x[3] * np.power(x[5], 2) + x[4] * np.power(x[6],2)) # Weight
+  g[0] = 27 * np.float_power(x[0], -1) * np.float_power(x[1], -2) * np.float_power(intx2, -1) -1 # <= 1
+  g[1] = 397.5 * np.float_power(x[0], -1) * np.float_power(x[1], -2) * np.float_power(intx2, -2) -1 # <= 1
+  g[2] = 1.93 * np.float_power(x[1], -1) * np.float_power(intx2, -1) * np.power(x[3], 3) * np.float_power(x[5], -4) -1 # <= 1
 
-  g[4] = (1 / (0.1 * np.power(x[5],3))) * np.power(np.power(((745*x[3])/(x[1]*x[2])),2) + 16.9e6, 0.5) - 1100
+  g[3] = 1.93 * np.float_power(x[1], -1) * np.float_power(intx2, -1) * np.power(x[3], 3) * np.float_power(x[5], -4) -1 # <= 1
+
+  g[4] = (1 / (0.1 * np.power(x[5],3))) * np.power(np.power(((745*x[3])/(x[1]*intx2)),2) + 16.9e6, 0.5) - 1100
 
   # g[4] = (np.sqrt(np.power((745*x[3]) / (x[1]*x[2]),2)+(16.9e6)) / (110.*np.float_power(x[5], 3)) ) - 1
   
-  g[5] = (1/(0.1 * np.power(x[6], 3))) * np.power((np.power(((745 * x[4]) / (x[1] * x[2])),2) + 157.5e6 ), 0.5) -850 # <=850
-  g[6] = x[1] * x[2] - 40 # <= 40
+  g[5] = (1/(0.1 * np.power(x[6], 3))) * np.power((np.power(((745 * x[4]) / (x[1] * intx2)),2) + 157.5e6 ), 0.5) -850 # <=850
+  g[6] = x[1] * intx2 - 40 # <= 40
   g[7] = 5 - (x[0] / x[1]) # >= 5
   g[8] = x[0] / x[1] -12 # <= 12
   g[9] = (1.5 * x[5] + 1.9) * np.float_power(x[3], -1) -1 # <= 1
@@ -78,65 +80,49 @@ def pressureVesel(x, objFunc, g, h): # The pressure vessel design | 80k maxEval
   g[3] = - (-x[3] + 240) # >= 0
 
   return objectiveFunction, g, h
-
-
-# private static double[] cantileverBeam(double[] x) {
-#         //calculo da funcao objetiva
-#         double f[] = new double[12];
-#         f[0] = 100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9]);
-       
-#         //calculo das restricoes (v)
-#         double[] v = new double[11+1];
-#         v[0] = 6*25000000/(x[0]*(x[1]*x[1])) - 14000;
-#         v[1] = 6*20000000/(x[2]*(x[3]*x[3])) - 14000;
-#         v[2] = 6*15000000/(x[4]*(x[5]*x[5])) - 14000;
-#         v[3] = 6*10000000/(x[6]*(x[7]*x[7])) - 14000;
-#         v[4] = 6*5000000/(x[8]*(x[9]*x[9])) - 14000;
-#         v[5]  = (x[1]/x[0]) - 20;
-#         v[6]  = (x[3]/x[2]) - 20;
-#         v[7]  = (x[5]/x[4]) - 20;
-#         v[8]  = (x[7]/x[6]) - 20;
-#         v[9] = (x[9]/x[8]) - 20;
-#         double aj1 = x[0]*(Math.pow(x[1], 3))/12;
-#         double aj2 = x[2]*(Math.pow(x[3], 3))/12;
-#         double aj3 = x[4]*(Math.pow(x[5], 3))/12;
-#         double aj4 = x[6]*(Math.pow(x[7], 3))/12;
-#         double aj5 = x[8]*(Math.pow(x[9], 3))/12;
-#         v[10] = (0.0025/3)*( (1000000/aj5) + (7000000/aj4) + (19000000/aj3) + (37000000/aj2) + (61000000/aj1) ) - 2.7;
-       
-#         for(int i=1; i<f.length; i++) {
-#             f[i] = v[i-1];
-#         }
-#         return f;
-#     }
-
 def cantileverBeam(x, objFunc, g, h): # The cantilever beam design | 35k maxEval
-  # Hi -> x[0] | Bi -> x[1]
-  # objectiveFunction = 0 # Volume
-  # for i in range(5):
-  #   v += x[0] * x[1]
-  # objectiveFunction = objectiveFunction * 100
+  # Bi -> x[0] | Hi -> x[1]
+  # x = [3, 60, 3.1, 55, 2.6, 50, 2.2837, 45.5507, 1.7532, 35.0631] # Best solution Bernardino 08
+  bDiscreteSet = [2.4, 2.6, 2.8, 3.1]
+  hDiscreteSet = [45., 50., 55., 60.]
+  # x[0] => b1 # Integer
+  # x[1] => h1 # Integer
 
-  # x = [60, 3, 55, 3.1, 50, 2.6, 45.5507, 2.2837, 35.0631, 1.7532]
+  # x[2] => b2 # Discrete
+  # x[3] => h2 # Discrete
+  # x[4] => b3 # Discrete
+  # x[5] => h3 # Discrete
+  # x[6] => b4 # Continuous
+  # x[7] => h4 # Continuous
+  # x[8] => b5 # Continuous
+  # x[9] => h5 # Continuous
 
-  objectiveFunction = 100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9])
-  # v = []
-  # v.append(100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9]))
+  intx0 = np.round(x[0])
+  intx1 = np.round(x[1])
 
-  g[0] = 6*25000000/(x[0]*(x[1]*x[1])) - 14000
-  g[1] = 6*20000000/(x[2]*(x[3]*x[3])) - 14000
-  g[2] = 6*15000000/(x[4]*(x[5]*x[5])) - 14000
+  discretex2 = find_nearest(bDiscreteSet, x[2])
+  discretex3 = find_nearest(hDiscreteSet, x[3])
+  discretex4 = find_nearest(bDiscreteSet, x[4])
+  discretex5 = find_nearest(hDiscreteSet, x[5])
+
+
+  # objectiveFunction = 100*(x[0]*x[1] + x[2]*x[3] + x[4]*x[5] + x[6]*x[7] + x[8]*x[9]) # Volume
+  objectiveFunction = 100*(intx0*intx1 + discretex2*discretex3 + discretex4*discretex5 + x[6]*x[7] + x[8]*x[9]) # Volume
+
+  g[0] = 6*25000000/(intx0*(intx1*intx1)) - 14000
+  g[1] = 6*20000000/(discretex2*(discretex3*discretex3)) - 14000
+  g[2] = 6*15000000/(discretex4*(discretex5*discretex5)) - 14000
   g[3] = 6*10000000/(x[6]*(x[7]*x[7])) - 14000
   g[4] = 6*5000000/(x[8]*(x[9]*x[9])) - 14000
-  g[5] = (x[1]/x[0]) - 20
-  g[6] = (x[3]/x[2]) - 20
-  g[7] = (x[5]/x[4]) - 20
+  g[5] = (intx1/intx0) - 20
+  g[6] = (discretex3/discretex2) - 20
+  g[7] = (discretex5/discretex4) - 20
   g[8] = (x[7]/x[6]) - 20
   g[9] = (x[9]/x[8]) - 20
 
-  aj1 = x[0]*(np.power(x[1], 3))/12
-  aj2 = x[2]*(np.power(x[3], 3))/12
-  aj3 = x[4]*(np.power(x[5], 3))/12
+  aj1 = intx0*(np.power(intx1, 3))/12
+  aj2 = discretex2*(np.power(discretex3, 3))/12
+  aj3 = discretex4*(np.power(discretex5, 3))/12
   aj4 = x[6]*(np.power(x[7], 3))/12
   aj5 = x[8]*(np.power(x[9], 3))/12
   g[10] = (0.0025/3)*( (1000000/aj5) + (7000000/aj4) + (19000000/aj3) + (37000000/aj2) + (61000000/aj1) ) - 2.7
