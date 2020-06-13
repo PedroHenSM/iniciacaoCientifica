@@ -35,7 +35,8 @@ AlGORITHM_PARAMS = {
   "seed": None,
   "maxFe": None,
   "constraintHandling": None,
-  "case": None
+  "case": None,
+  "rweights": None
 }
 
 
@@ -344,15 +345,15 @@ class Population(object):
           if individual.objectiveFunction[0] < best.objectiveFunction[0]:
             best = deepcopy(individual)
       elif constraintHandling == APM:
-        bothViolates = individualViolates(individual, constraintHandling) and individualViolates(best, constraintHandling) # Both violates
-        neitherViolates = not individualViolates(individual, constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
+        bothViolates = isInfactible(individual, constraintHandling) and isInfactible(best, constraintHandling) # Both violates
+        neitherViolates = not isInfactible(individual, constraintHandling) and not isInfactible(best, constraintHandling) # Neither violates
         if bothViolates or neitherViolates:
           if individual.fitness < best.fitness:
             best = deepcopy(individual)
           elif individual.fitness == best.fitness:
             if individual.objectiveFunction[0] < best.objectiveFunction[0]:
               best = deepcopy(individual)
-        elif individualViolates(best, constraintHandling): # Best violates
+        elif isInfactible(best, constraintHandling): # Best violates
           best = deepcopy(individual)
       else:
         sys.exit("Constraint handling method not defined.")
@@ -364,39 +365,6 @@ class Population(object):
       # 		if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
       # 			best = deepcopy(self.individuals[i])
 
-    return best
-
-  def bestIndividualDeprecated(self, constraintHandling):
-    # Assume the first individual is the best one
-    best = deepcopy(self.individuals[0])
-    for i in range(1, len(self.individuals)):
-      if constraintHandling == DEB:
-        if self.individuals[i].violationSum < best.violationSum:
-          best = deepcopy(self.individuals[i])
-        elif self.individuals[i].violationSum == best.violationSum:
-          if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
-            best = deepcopy(self.individuals[i])
-      elif constraintHandling == APM:
-        bothViolates = individualViolates(self.individuals[i], constraintHandling) and individualViolates(best, constraintHandling) # Both violates
-        neitherViolates = not individualViolates(self.individuals[i], constraintHandling) and not individualViolates(best, constraintHandling) # Neither violates
-        if bothViolates or neitherViolates:
-          if self.individuals[i].fitness < best.fitness:
-            best = deepcopy(self.individuals[i])
-          elif self.individuals[i].fitness == best.fitness:
-            if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
-              best = deepcopy(self.individuals[i])
-        elif individualViolates(best, constraintHandling): # Best violates
-          best = deepcopy(self.individuals[i])
-
-      # elif constraintHandling == 2: # APM
-      # 	if self.individuals[i].fitness < best.fitness:
-      # 		best = deepcopy(self.individuals[i])
-      # 	elif self.individuals[i].fitness == best.fitness:
-      # 		if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
-      # 			best = deepcopy(self.individuals[i])
-      else:
-        if self.individuals[i].objectiveFunction[0] < best.objectiveFunction[0]:
-          best = deepcopy(self.individuals[i])
     return best
 
   def hallOfFame(self, hof, constraintHandling):
@@ -413,15 +381,15 @@ class Population(object):
         if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
           hof = deepcopy(currentBest)
     elif constraintHandling == APM: # APM
-      bothViolates = individualViolates(currentBest, constraintHandling) and individualViolates(hof, constraintHandling) # Both violates
-      neitherViolates = not individualViolates(currentBest, constraintHandling) and not individualViolates(hof, constraintHandling) # Neither violates
+      bothViolates = isInfactible(currentBest, constraintHandling) and isInfactible(hof, constraintHandling) # Both violates
+      neitherViolates = not isInfactible(currentBest, constraintHandling) and not isInfactible(hof, constraintHandling) # Neither violates
       if bothViolates or neitherViolates:
         if currentBest.fitness < hof.fitness:
           hof = deepcopy(currentBest)
         elif currentBest.fitness == hof.fitness:
           if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
             hof = deepcopy(currentBest)
-      elif individualViolates(hof, constraintHandling): # Hof violates
+      elif isInfactible(hof, constraintHandling): # Hof violates
         hof = deepcopy(currentBest)
     else:
       sys.exit("Constraint handling method not defined.")
@@ -433,6 +401,58 @@ class Population(object):
       # 		hof = deepcopy(currentBest)
 
     return hof
+
+
+  def hallOfFameFixed(self, hof, bestLastFactible, constraintHandling):
+    currentBest = self.bestIndividual(constraintHandling)
+    if hof is None:
+      hof = deepcopy(currentBest)
+    if constraintHandling is None: # Bound constrained problems
+      if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+        hof = deepcopy(currentBest)
+    elif constraintHandling == DEB: # Deb
+      if currentBest.violationSum < hof.violationSum:
+        hof = deepcopy(currentBest)
+      elif currentBest.violationSum == hof.violationSum:
+        if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+          hof = deepcopy(currentBest)
+    elif constraintHandling == APM: # APM
+      bothViolates = isInfactible(currentBest, constraintHandling) and isInfactible(hof, constraintHandling) # Both violates
+      neitherViolates = not isInfactible(currentBest, constraintHandling) and not isInfactible(hof, constraintHandling) # Neither violates
+      if bothViolates or neitherViolates:
+        if currentBest.fitness < hof.fitness:
+          hof = deepcopy(currentBest)
+        elif currentBest.fitness == hof.fitness:
+          if currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+            hof = deepcopy(currentBest)
+      elif isInfactible(hof, constraintHandling): # Hof violates
+        hof = deepcopy(currentBest)
+    else:
+      sys.exit("Constraint handling method not defined.")
+
+      # if hof is None or currentBest.fitness < hof.fitness:
+      # 	hof = deepcopy(currentBest)
+      # elif hof is None or currentBest.fitness == hof.fitness:
+      # 	if hof is None or currentBest.objectiveFunction[0] < hof.objectiveFunction[0]:
+      # 		hof = deepcopy(currentBest)
+
+    return hof
+
+  def lastFactibleIndividual(self, lastFactible, constraintHandling):
+    currentBest = self.bestIndividual(constraintHandling)
+    # Current best is factible
+    if not isInfactible(currentBest, constraintHandling):
+      # First factible individual
+      # if lastFactible is None:
+      lastFactible = deepcopy(currentBest)
+      # In all cases, just compare objective function, because both individuals (currentBest and bestLastFactible) are already factible
+      # if constraintHandling is None or constraintHandling == DEB or constraintHandling == APM:
+        # if currentBest.objectiveFunction[0] < bestLastFactible.objectiveFunction[0]:
+          # bestLastFactible = deepcopy(currentBest)
+      # else:
+      #   sys.exit("Constraint handling method not defined.")
+    return lastFactible
+    
 
   def uniteConstraints(self, constraintHandling):
     gSize = len(self.individuals[0].g)
@@ -683,7 +703,7 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("ngen ObjectiveFunction {} ProjectVariables".format(feasibiliyMeasure))
 
-def printFinalPopulationInfo(status, population, hof, constraintHandling, bestFromLastPopulation):
+def printFinalPopulationInfo(status, population, lastFactible, hof, constraintHandling, bestFromLastPopulation):
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("Status: {}".format(status))
   print("Last individual")
@@ -693,6 +713,8 @@ def printFinalPopulationInfo(status, population, hof, constraintHandling, bestFr
     population.printBest(True, constraintHandling, True)
   print("Hall of fame")
   hof.printIndividual(True, constraintHandling, True)
+  print("Last factible individual")
+  lastFactible.printIndividual(True, constraintHandling, True)
 
 def initializeTruss(function):
   if function == 110:  # Truss 10 bars
@@ -796,15 +818,18 @@ def initiliazeHandleConstraintsParams(function):
   avgObjFunc = -1
   return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
 
-def individualViolates(individual, constraintHandling):
-  if constraintHandling == DEB:
+def isInfactible(individual, constraintHandling):
+  # Bound constrained prroblems, always factible
+  if constraintHandling is None:
+    return False
+  elif constraintHandling == DEB:
     if individual.violationSum == 0:
       return False
   elif constraintHandling == APM:
     if individual.objectiveFunction[0] == individual.fitness:
       return False
   else:
-    sys.exit("Constriaint handling method not defined.")
+    sys.exit("Constraint handling method not defined.")
   return True
 
 def constraintsInitParams (function, constraintHandling):
@@ -828,8 +853,9 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
   if mu is None:
     mu = int(parentsSize / 2) # number of parents selected (selected search points in the population)
   if rweights is None:
-    rweights = "linear"
+    rweights = "Linear"
 
+  # sys.exit(rweights)
   # Initiliaze dynamic (internal) strategy parameters and constants
   pc = np.zeros(nSize) # evolution paths for C
   ps = np.zeros(nSize) # evolutions paths for sigma
@@ -844,12 +870,14 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
   update_count = 0 # B and D update at feval == 0
 
   # Strategy parameter setting: Selection
-  if rweights == "superlinear":
+  if rweights == "Superlinear":
     weights = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1))
-  elif rweights == "linear":
-    weights = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1)) # muXone recombination weights
-  elif rweights == "equal":
+  elif rweights == "Linear":
+    weights = mu + 0.5 - np.arange(1, mu + 1) # muXone recombination weights
+  elif rweights == "Equal":
     weights = np.ones(mu)
+  else:
+    sys.exit("Weights not defined.")
   weights /= np.sum(weights) # normalize recombination weights array
   mueff = 1. / np.sum(weights **2) # vriance-effective size of mu
 
@@ -921,15 +949,13 @@ def populationPick(parentIdx, parentsSize):
         chosenOnes.append(idx)
   return chosenOnes
 
-def biribiri(param):
-  print("Tio tá ai?  {}".format(param))
-
 # Differential evolution
-def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval):
+def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval, rweights):
   np.random.seed(seed)
   strFunction = str(function)
   feval = 0
   hof = None
+  lastFactible = None
   discreteSet = None
   status = "Initializing"
 
@@ -979,33 +1005,33 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
     # Selects best offsprings and move them into parents
     parents.deSelect(offsprings, generatedOffspring, constraintHandling)
 
-    # Gets hall of fame individual
+    # Gets hall of fame individual and last factible one
     hof = parents.hallOfFame(hof, constraintHandling)
+    lastFactible = parents.lastFactibleIndividual(lastFactible, constraintHandling)
     
     # Prints best individual of current generation
     parents.printBest(True, constraintHandling, True)
   status = "Finished"
-  printFinalPopulationInfo(status, parents, hof, constraintHandling, None)
+  printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, None)
 
 # CMA ES TODO Not working for problem 22 (not converging)
-def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval):
+def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval, rweights):
   np.random.seed(seed)
   strFunction = str(function)
-  # feval = 0
   hof = None
+  lastFactible = None
   discreteSet = None
   status="Initializing"
 
-
   # print(AlGORITHM_PARAMS)
-  # sys.exit("aff")
+  # sys.exit(rweights)
 
   if strFunction[0] == "3": # cec2020 bound constrained
     maxFe = defineMaxEval(function, nSize)
     constraintHandling = None
 
   # User defined params (if set to None, uses default)
-  parentsSize = centroid = sigma = mu = rweights = None
+  parentsSize = centroid = sigma = mu = None
   # rweights = "equal"
   if case == "discrete":
     discreteSet = getDiscreteCaseList(function)
@@ -1027,7 +1053,8 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     "maxFe": maxFe,
     "constraintHandling": constraintHandling,
     "case": case,
-    "feval": feval
+    "feval": feval,
+    "rweights": rweights,
   }
 
   # Generate initial population
@@ -1050,9 +1077,8 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
     for individual in parents.individuals:
       if(np.isnan(individual.objectiveFunction).any() or np.isnan(individual.violationSum).any() or np.isnan(individual.n).any()):
-        print("não plz")
         parents.cmaRestart = True
-        printFinalPopulationInfo(status, parents, hof, constraintHandling, bestFromLastPopulation)
+        printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, bestFromLastPopulation)
         break
 
     # Check bounds and evaluate
@@ -1074,6 +1100,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
     # Gets hall of fame individual
     hof = parents.hallOfFame(hof, constraintHandling)
+    lastFactible = parents.lastFactibleIndividual(lastFactible, constraintHandling)
 
     # Update covariance matrix strategy from the population
     try:
@@ -1091,10 +1118,10 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   if parents.cmaRestart:
     CMAES(AlGORITHM_PARAMS["function"], AlGORITHM_PARAMS["nSize"], AlGORITHM_PARAMS["parentsSize"],
       AlGORITHM_PARAMS["offspringsSize"], AlGORITHM_PARAMS["seed"], AlGORITHM_PARAMS["maxFe"], 
-      AlGORITHM_PARAMS["constraintHandling"], AlGORITHM_PARAMS["case"], AlGORITHM_PARAMS["feval"])
+      AlGORITHM_PARAMS["constraintHandling"], AlGORITHM_PARAMS["case"], AlGORITHM_PARAMS["feval"], AlGORITHM_PARAMS["rweights"])
 
   status = "Finished"
   # Prints final info
-  printFinalPopulationInfo(status, parents, hof, constraintHandling, None)
+  printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, None)
   # print("CPU time used (seconds)")
   # print("666")

@@ -7,12 +7,12 @@ import numpy as np
 import timeit
 from math import sqrt, log, exp
 
-def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case):
+def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, rweights):
   if algorithm == "GA":
     sys.exit("Not implemented.")
   elif algorithm == "DE":
     startTime = timeit.default_timer()
-    algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0)
+    algorithms.DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0, rweights)
     endTime = timeit.default_timer()
     elapsedTime = endTime - startTime
     print("CPU time used (seconds)\n{}".format(elapsedTime))
@@ -23,7 +23,7 @@ def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed,
     sys.exit("Not implemented.")
   elif algorithm == "CMAES":
     startTime = timeit.default_timer()
-    algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0)
+    algorithms.CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, 0, rweights)
     endTime = timeit.default_timer()
     elapsedTime = endTime - startTime
     print("CPU time used (seconds)\n{}".format(elapsedTime))
@@ -44,15 +44,16 @@ def menu():
   parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
   parser.add_argument("--maxFe", "-m", type=int, default=15000, help="The max number of functions evaluations")
   parser.add_argument("--case", "-c", type=str, default="continuous", help="Discrete or continuous design variables")
+  parser.add_argument("--weights", "-w", type=str, default="Linear", help="Change weights parameter. Decrease speed, can be 'Superlinear', 'Linear' or 'Equal'")
+  # parser.add_argument("--windowSize", "-w", type=int, default=5, help="Size of the window for updating gaussian model")
   # parser.add_argument("--crossoverProb", "-c", type=int, default=100, help="The crossover probability [0,100]")
   # parser.add_argument("--esType", "-e", type=int, default=0, help="The type of ES. 0 for ES(µ + λ) or 1 for ES(µ , λ)")
   # parser.add_argument("--globalSigma", "-g", type=int, default=0, help="If the σ parameter is global or not. 1 for global σ or 0 if not")
-  # parser.add_argument("--windowSize", "-w", type=int, default=5, help="Size of the window for updating gaussian model")
   args = parser.parse_args()
   # CEC20 Bound Constrained
   # F1-F5 & F8-F10 : D = 5, 10, 15, 20
   # F6 & F7 : D = 10, 15,
-  execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe, args.constraintHandling, args.case)
+  execAlgorithm(args.algorithm, args.function, args.nSize, args.parentsSize, args.offspringsSize, args.seed, args.maxFe, args.constraintHandling, args.case, args.weights)
   # print(args)
 
 
