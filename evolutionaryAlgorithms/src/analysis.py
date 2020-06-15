@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 PROBLEMS_TYPE = "Other Engineering" # Trusses | Other Engineering
-SELECTED_INDIVIDUAL = "Hof" # Last | Hof
+SELECTED_INDIVIDUAL = "Last" # Last | Hof | Last factibles
 TRUSS_CASE = "Continuous" # Continuous | Discrete
 
 def readResults(individualToPick, problemsType):
@@ -14,15 +14,19 @@ def readResults(individualToPick, problemsType):
     individualToPick = "Hall of fame"
   elif individualToPick == "Last":
     individualToPick = "Last individual"
+  elif individualToPick == "Last factible":
+    individualToPick = "Last factible individual"
   else:
     sys.exit("Individual to pick not defined.")
 
   algorithms = ["DE", "CMAES"]
   if problemsType == "Trusses":
-    functions = [10, 25, 60, 72, 942]
+    functions = [110, 125, 160, 172, 1942]
   elif problemsType == "Other Engineering":
-    functions = [21, 22, 23, 24, 25] # Other engineering problems
-    # functions = [21] # Other engineering problems
+    # functions = [21, 22, 23, 24, 25] # Other engineering problems
+    functions = [21] # Other engineering problems
+
+  weights = ["Linear", "Superlinear", "Equal"] # CMA-ES weights parameters
 
   constraintHandlingMethods = ["DEB", "APM"]
   seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
@@ -35,61 +39,70 @@ def readResults(individualToPick, problemsType):
     dataOfFunction = []
     for a in (algorithms): # Algorithms
       for p in (constraintHandlingMethods): # Constraint handling methods
-        for s in (seeds): # Seeds
-          tempData = []
-          # filePath = (basePath / "../results/t{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve() # Trusses
-          filePath = (basePath / "../results/f{}/{}_f{}_p{}_s{}.dat".format(f-20, a, f-20, p, s)).resolve()
-          file = open(filePath)
-          countFactibleInd = 0
-          while True:
-            buffer = file.readline()
-            if individualToPick in buffer: # Find individual for data analysis
-              hasFactibleSolution = True
-              updateBestIndividual = False
-              buffer = file.readline() # Read one more
-              buffer = buffer.split(" ")
-              # Verify if solution is feasible
-              if p == "DEB":
-                if float(buffer[1]) != 0:
-                  hasFactibleSolution = False
-                  # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-              elif p == "APM":
-                if float(buffer[0]) != float(buffer[1]):
-                  hasFactibleSolution = False
-                  # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-              
-              # Only saves individual if its factible
-              if hasFactibleSolution:
-                # print("Another factible individual: {}: {}+{}+s{}".format(f, a, p, s))
-                for key, item in enumerate(buffer):
-                  # First individual to be inserted on tempData, just insert it
-                  if countFactibleInd == 0:
-                    tempData.append(float(item))
-                  else:
-                    if key == 0: # First buffer item
-                      if float(item) < tempData[-len(buffer)]: # Ojbective function from new individual is better than old one
-                        # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-                        # print("tempData before cleaning: {}".format(tempData))
-                        tempData = tempData[:-len(buffer)] # Remove last individual
-                        # print("tempData after cleaning: {}".format(tempData))
-                        updateBestIndividual = True
-                      else: # If new individual is worst than old one, dont need go through the buffer array
-                        break
-                    if updateBestIndividual: # If individual has to be updated
-                      # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-                      tempData.append(float(item))
-                countFactibleInd += 1
-
-            # Read time and go to next one
-            elif "CPU time used" in buffer:
-              # Only get CPU time and algorithm name that algorithm got at least one factible solution
-              if countFactibleInd != 0: 
+        for keyW, w in enumerate(weights):
+          for s in (seeds): # Seeds
+            tempData = []
+            filePath = None
+            if a == "CMAES":
+              filePath = (basePath / "../results/functions/f{}/{}_f{}_p{}_w{}_s{}.dat".format(f, a, f, p, w, s)).resolve()
+            elif a == "DE" and keyW == 0: # Only make analysis once, since weights parameters doesn't change de results
+              filePath = (basePath / "../results/functions/f{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve()
+            # filePath = (basePath / "../results/t{}/{}_f{}_p{}_s{}.dat".format(f, a, f, p, s)).resolve() # Trusses
+            if filePath is not None:
+              file = open(filePath)
+              countFactibleInd = 0
+              while True:
                 buffer = file.readline()
-                tempData.append(float(buffer))
-                tempData.append("Problem{}_{}+{}".format(f, a, p)) # TODO Verify is this works
-                # tempData.append("{}_f{}_p{}".format(a, f, p)) # Old line, works
-                dataOfFunction.append(tempData)
-              break
+                if individualToPick in buffer: # Find individual for data analysis
+                  hasFactibleSolution = True
+                  updateBestIndividual = False
+                  buffer = file.readline() # Read one more
+                  buffer = buffer.split(" ")
+                  # Verify if solution is feasible
+                  if p == "DEB":
+                    if float(buffer[1]) != 0:
+                      hasFactibleSolution = False
+                      # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                  elif p == "APM":
+                    if float(buffer[0]) != float(buffer[1]):
+                      hasFactibleSolution = False
+                      # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                  
+                  # Only saves individual if its factible
+                  if hasFactibleSolution:
+                    # print("Another factible individual: {}: {}+{}+s{}".format(f, a, p, s))
+                    for key, item in enumerate(buffer):
+                      # First individual to be inserted on tempData, just insert it
+                      if countFactibleInd == 0:
+                        tempData.append(float(item))
+                      else:
+                        if key == 0: # First buffer item
+                          if float(item) < tempData[-len(buffer)]: # Ojbective function from new individual is better than old one
+                            # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                            # print("tempData before cleaning: {}".format(tempData))
+                            tempData = tempData[:-len(buffer)] # Remove last individual
+                            # print("tempData after cleaning: {}".format(tempData))
+                            updateBestIndividual = True
+                          else: # If new individual is worst than old one, dont need go through the buffer array
+                            break
+                        if updateBestIndividual: # If individual has to be updated
+                          # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                          tempData.append(float(item))
+                    countFactibleInd += 1
+
+                # Read time and go to next one
+                elif "CPU time used" in buffer:
+                  # Only get CPU time and algorithm name that algorithm got at least one factible solution
+                  if countFactibleInd != 0: 
+                    buffer = file.readline()
+                    tempData.append(float(buffer))
+                    if a == "CMAES":
+                      tempData.append("Problem{}_{} {} + {}".format(f, a, w, p))
+                    elif a == "DE":
+                      tempData.append("Problem{}_{} + {}".format(f, a, p))
+                    
+                    dataOfFunction.append(tempData)
+                  break
     # Each list from solutions contains the data for each function
     solutions.append(dataOfFunction)
 
@@ -351,15 +364,31 @@ def makeAnalysis(solutions, functions):
     columnsTitles = list(grouped.columns.levels[1])
     # Get extra results (appending other algorithms on 2d np arr)
     np2dArr, rowsTitles = getExtraResults(np2dArr, rowsTitles, key, case, functions[key])
-    # sys.exit("thx")
     # Generates .text table
     np2dArrToLatex(np2dArr, columnsTitles, rowsTitles)
 
-    # break
+
+def renameColumnsTitles(columnsTitles):
+  for key, title in enumerate(columnsTitles):
+    if title == "min":
+      columnsTitles[key] = "Best"
+    if title == "median":
+      columnsTitles[key] = "Median"
+    if title == "mean":
+      columnsTitles[key] = "Average"
+    if title == "std":
+      columnsTitles[key] = "St.Dev"
+    if title == "max":
+      columnsTitles[key] = "Worst"
+    if title == "size":
+      columnsTitles[key] = "fr"
+  return columnsTitles
 
 def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
+  # Rename column titles
+  columnsTitles = renameColumnsTitles(columnsTitles)
+  
   # List containing minimum value of each column
-  # minOfEachColumn = np2dArr.min(axis=0) # works
   minOfEachColumn = np.nanmin(np2dArr, axis=0)
 
   # Define print format, table aligmnent and round rpecision
@@ -395,6 +424,8 @@ def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
   print(*columnsTitles, sep=" & ", end=" \\\ ") # Printing columnTitles
   print("\n\\hline")
 
+
+
   for rowIndex, row in enumerate(np2dArr):
     # Printing row titles
     print(rowsTitles[rowIndex], end=" & ")
@@ -402,22 +433,28 @@ def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
       # Verifies if current item from matrix is the minimum, for highlightning
       if np.round(np2dArr[rowIndex][columnIndex], precRound) == np.round(minOfEachColumn[columnIndex], precRound):
       # if np2dArr[rowIndex][columnIndex]== minOfEachColumn[columnIndex]:
-        # Last item of row, use line break 
+        # Last item of row (fr) doesn't need bold, its printed without floating points and uses line break 
         if columnIndex == len(row) -1:
-          print("\\textbf{{{:{prec}}}}".format(item, prec=precFormat), end=" \\\ ")
+          print("{:{prec}}".format(item, prec=".0f"), end=" \\\ ")
+        # Third to last item of row (std) its printed used scientific notation 
+        elif columnIndex == len(row) -3:
+          print("\\textbf{{{:{prec}}}}".format(item, prec="0.2e"), end=" & ")
         else:
           print("\\textbf{{{:{prec}}}}".format(item, prec=precFormat), end=" & ")
       else:
-        # Last item of row, use line break
+        # Last item of row (fr) its printed without floating points and uses line break
         if columnIndex == len(row) -1:
-          print("{:{prec}}".format(item, prec=precFormat), end=" \\\ ")
+          print("{:{prec}}".format(item, prec=".0f"), end=" \\\ ")
+        # Third to last item of row (std) its printed used scientific notation 
+        elif columnIndex == len(row) -3:
+          print("\\textbf{{{:{prec}}}}".format(item, prec="0.2e"), end=" & ")
         else:
           print("{:{prec}}".format(item, prec=precFormat), end=" & ")
     print()
 
   print("\\end{tabular}")
   print("\\\ ")
-  print("\\textbf{{{}}}: {}".format("Indíviduo Selecionado", SELECTED_INDIVIDUAL))
+  print("\\textbf{{{}}}: {}".format("Chosen individual", SELECTED_INDIVIDUAL))
   print("\\end{table}")
   # Begin of table structure .tex
   print()

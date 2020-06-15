@@ -707,14 +707,21 @@ def printFinalPopulationInfo(status, population, lastFactible, hof, constraintHa
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("Status: {}".format(status))
   print("Last individual")
-  if (bestFromLastPopulation is not None):
+  if bestFromLastPopulation is not None:
     bestFromLastPopulation.printIndividual(True, constraintsInitParams, True)
   else:
     population.printBest(True, constraintHandling, True)
   print("Hall of fame")
-  hof.printIndividual(True, constraintHandling, True)
+  if hof is not None:
+    hof.printIndividual(True, constraintHandling, True)
+  else:
+    print("")
   print("Last factible individual")
-  lastFactible.printIndividual(True, constraintHandling, True)
+  if lastFactible is not None:
+    lastFactible.printIndividual(True, constraintHandling, True)
+  else:
+    print("")
+
 
 def initializeTruss(function):
   if function == 110:  # Truss 10 bars
