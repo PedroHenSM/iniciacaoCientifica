@@ -850,7 +850,7 @@ def constraintsInitParams (function, constraintHandling):
 def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
   # User defined params
   if parentsSize is None:
-    parentsSize = int(4 + 3 * np.log(nSize)) # Population size
+    parentsSize = int(4 + 3 * np.log(nSize)) # Population size (λ)
   if centroid is None:
     # centroid = np.array([5.0]*nSize) # objective variables initial points
     centroid = np.random.randn(nSize) # objective variables initial points | gaussian distribution between [0,1]
@@ -858,7 +858,7 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
     # sigma = 5.0 # coordinate wise standard deviation(step-size)
     sigma = 0.5 # coordinate wise standard deviation(step-size)
   if mu is None:
-    mu = int(parentsSize / 2) # number of parents selected (selected search points in the population)
+    mu = int(parentsSize / 2) # number of parents selected (selected search points in the population) (µ)
   if rweights is None:
     rweights = "Linear"
 
@@ -876,7 +876,7 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
   cond = diagD[indx[-1]] / diagD[indx[0]] # divide o valor mais alto do pelo mais baixo
   update_count = 0 # B and D update at feval == 0
 
-  # Strategy parameter setting: Selection
+  # Strategy parameter setting: Selection (w)
   if rweights == "Superlinear":
     weights = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1))
   elif rweights == "Linear":
@@ -889,12 +889,12 @@ def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
   mueff = 1. / np.sum(weights **2) # vriance-effective size of mu
 
   # Strategy parameter setting: Adaptation
-  cc = 4. / (nSize + 4.) # time constant for cumulation for C
-  cs = (mueff + 2.) / (nSize + mueff + 3.) # t-const for cumulation for sigma control
+  cc = 4. / (nSize + 4.) # time constant for cumulation for C (cc)
+  cs = (mueff + 2.) / (nSize + mueff + 3.) # t-const for cumulation for sigma control (cσ)
   ccov1 = 2. / ((nSize + 1.3) ** 2 + mueff) # learning rate for rank one update of C
   ccovmu = 2. * (mueff - 2. + 1. / mueff) / ((nSize + 2.) ** 2 + mueff) # and for rank-mu update
   ccovmu = min(1 - ccov1, ccovmu)
-  damps = 1. + 2. * max(0, np.sqrt((mueff - 1.) / (nSize + 1.)) - 1.) + cs # # damping for sigma
+  damps = 1. + 2. * max(0, np.sqrt((mueff - 1.) / (nSize + 1.)) - 1.) + cs # # damping for sigma (dσ)
 
   return parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps
 
