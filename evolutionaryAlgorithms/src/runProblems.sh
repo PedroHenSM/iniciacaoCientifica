@@ -1,10 +1,14 @@
 #!/bin/bash
 
+start=$(date +"%T") # Get curent time
+
 algorithms=(DE CMAES) # Algorithms
 totalAlgorithms=${#algorithms[@]} 
 
-functions=(21 22 23 24 25 110 125 160 172 1942) # Problems
-totalFunctions=${#functions[@]} # 5
+# functions=(21 22 23 24 25 110 125 160 172 1942) # Problems
+# functions=(21 22 23 24 25) # Problems
+functions=(110 125 160 172 1942) # Problems
+totalFunctions=${#functions[@]}
 
 seeds=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30) # Seeds
 totalSeeds=${#seeds[@]}
@@ -129,6 +133,10 @@ do
   done
   f=$((f+1))
 done
+
+end=$(date +"%T") # Get curent time
+echo "Started execution at: $start"
+echo "Finished execution at: $end "
 
 
 
