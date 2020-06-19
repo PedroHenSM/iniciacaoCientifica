@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 PROBLEMS_TYPE = "Other Engineering" # Trusses | Other Engineering
-SELECTED_INDIVIDUAL = "Last" # Last | Hof | Last factibles
+SELECTED_INDIVIDUAL = "Hof" # Last | Hof | Last factible
 TRUSS_CASE = "Continuous" # Continuous | Discrete
 
 def readResults(individualToPick, problemsType):
@@ -22,9 +22,10 @@ def readResults(individualToPick, problemsType):
   algorithms = ["DE", "CMAES"]
   if problemsType == "Trusses":
     functions = [110, 125, 160, 172, 1942]
+    # functions = [110]
   elif problemsType == "Other Engineering":
-    # functions = [21, 22, 23, 24, 25] # Other engineering problems
-    functions = [21] # Other engineering problems
+    functions = [21, 22, 23, 24, 25] # Other engineering problems
+    # functions = [21] # Other engineering problems
 
   weights = ["Linear", "Superlinear", "Equal"] # CMA-ES weights parameters
 
@@ -53,42 +54,45 @@ def readResults(individualToPick, problemsType):
               countFactibleInd = 0
               while True:
                 buffer = file.readline()
+                # print(buffer)
                 if individualToPick in buffer: # Find individual for data analysis
                   hasFactibleSolution = True
                   updateBestIndividual = False
                   buffer = file.readline() # Read one more
-                  buffer = buffer.split(" ")
-                  # Verify if solution is feasible
-                  if p == "DEB":
-                    if float(buffer[1]) != 0:
-                      hasFactibleSolution = False
-                      # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-                  elif p == "APM":
-                    if float(buffer[0]) != float(buffer[1]):
-                      hasFactibleSolution = False
-                      # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-                  
-                  # Only saves individual if its factible
-                  if hasFactibleSolution:
-                    # print("Another factible individual: {}: {}+{}+s{}".format(f, a, p, s))
-                    for key, item in enumerate(buffer):
-                      # First individual to be inserted on tempData, just insert it
-                      if countFactibleInd == 0:
-                        tempData.append(float(item))
-                      else:
-                        if key == 0: # First buffer item
-                          if float(item) < tempData[-len(buffer)]: # Ojbective function from new individual is better than old one
-                            # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
-                            # print("tempData before cleaning: {}".format(tempData))
-                            tempData = tempData[:-len(buffer)] # Remove last individual
-                            # print("tempData after cleaning: {}".format(tempData))
-                            updateBestIndividual = True
-                          else: # If new individual is worst than old one, dont need go through the buffer array
-                            break
-                        if updateBestIndividual: # If individual has to be updated
-                          # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                  if len(buffer) > 1: # Buffer is not empty
+                    # sys.exit("buffer não existe: Problem{}_{} {} + {}, seed {}".format(f, a, w, p, s))
+                    buffer = buffer.split(" ")
+                    # Verify if solution is feasible
+                    if p == "DEB":
+                      if float(buffer[1]) != 0:
+                        hasFactibleSolution = False
+                        # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                    elif p == "APM":
+                      if float(buffer[0]) != float(buffer[1]):
+                        hasFactibleSolution = False
+                        # print("Individual infactible. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                    
+                    # Only saves individual if its factible
+                    if hasFactibleSolution:
+                      # print("Another factible individual: {}: {}+{}+s{}".format(f, a, p, s))
+                      for key, item in enumerate(buffer):
+                        # First individual to be inserted on tempData, just insert it
+                        if countFactibleInd == 0:
                           tempData.append(float(item))
-                    countFactibleInd += 1
+                        else:
+                          if key == 0: # First buffer item
+                            if float(item) < tempData[-len(buffer)]: # Ojbective function from new individual is better than old one
+                              # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                              # print("tempData before cleaning: {}".format(tempData))
+                              tempData = tempData[:-len(buffer)] # Remove last individual
+                              # print("tempData after cleaning: {}".format(tempData))
+                              updateBestIndividual = True
+                            else: # If new individual is worst than old one, dont need go through the buffer array
+                              break
+                          if updateBestIndividual: # If individual has to be updated
+                            # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                            tempData.append(float(item))
+                      countFactibleInd += 1
 
                 # Read time and go to next one
                 elif "CPU time used" in buffer:
@@ -116,9 +120,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
   if function == 110: # 10 bar truss
     if case == "Continuous":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70, "-"] 
-      duvde = ["DUVDE*", 5060.85, float("NaN"), 5067.18, 7.94e+00, 5076.66, "-"] 
-      apm = ["APM*", 5069.08, float("NaN"), 5091.43, float("NaN"), 5117.39, "-"]
+      smde = ["SMDE k=2*", 5060.87, 5060.92, 5061.98, 3.93e+00, 5076.70, float("NaN")] 
+      duvde = ["DUVDE*", 5060.85, float("NaN"), 5067.18, 7.94e+00, 5076.66, float("NaN")] 
+      apm = ["APM*", 5069.08, float("NaN"), 5091.43, float("NaN"), 5117.39, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -131,9 +135,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
       np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
     elif case == "Discrete":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30, 666]
-      duvde = ["DUVDE*", 5562.35, float("NaN"), 5564.90, 0.6, 5565.04, 666]
-      apm = ["APM*", 5490.74, float("NaN"), 5545.48, float("NaN"), 5567.84, 666]
+      smde = ["SMDE k=2*", 5490.74, 5490.74, 5495.99, 1.13e+01, 5529.30, float("NaN")]
+      duvde = ["DUVDE*", 5562.35, float("NaN"), 5564.90, 0.6, 5565.04, float("NaN")]
+      apm = ["APM*", 5490.74, float("NaN"), 5545.48, float("NaN"), 5567.84, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -149,7 +153,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
   elif function == 125: # 25 bar truss
     if case == "Continuous":
       # Define algorithms and literature results
-      smde= ["SMDE k=2*", 484.06, 484.07, 484.07, 0.0107, 484.10]
+      smde= ["SMDE k=2*", 484.06, 484.07, 484.07, 0.0107, 484.10, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -158,9 +162,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
       np2dArr = np.append(np2dArr, [smde[1:]], axis=0) # Appends values of given list (remove first index, which is the string)
     elif case == "Discrete":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 484.85, 485.05, 485.44, 0.693, 487.13]
-      duvde = ["DUVDE*", 485.90, float("NaN"), 498.44, 7.66e+00, 507.77]
-      apm = ["APM*", 485.85, float("NaN"), 485.97, float("NaN"), 490.74]
+      smde = ["SMDE k=2*", 484.85, 485.05, 485.44, 0.693, 487.13, float("NaN")]
+      duvde = ["DUVDE*", 485.90, float("NaN"), 498.44, 7.66e+00, 507.77, float("NaN")]
+      apm = ["APM*", 485.85, float("NaN"), 485.97, float("NaN"), 490.74, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -176,9 +180,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
   elif function == 160: # 60 bar truss
     if case == "Continuous":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 308.94, 309.42, 309.49, 0.464, 311.21]
-      duvde = ["DUVDE", 309.44, float("NaN"), 311.54, 1.46e+00, 314.70]
-      apm = ["APM", 311.87, float("NaN"), 333.01, float("NaN"), 384.19]
+      smde = ["SMDE k=2*", 308.94, 309.42, 309.49, 0.464, 311.21, float("NaN")]
+      duvde = ["DUVDE", 309.44, float("NaN"), 311.54, 1.46e+00, 314.70, float("NaN")]
+      apm = ["APM", 311.87, float("NaN"), 333.01, float("NaN"), 384.19, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -191,7 +195,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
       np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
     elif case == "Discrete":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 312.73, 314.20, 315.12, 3.98e+00, 335.88]
+      smde = ["SMDE k=2*", 312.73, 314.20, 315.12, 3.98e+00, 335.88, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -203,9 +207,9 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
   elif function == 172: # 72 bar truss
     if case == "Continuous":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 379.62, 379.63, 379.65, 0.0341, 379.73]
-      duvde = ["DUVDE", 379.66, float("NaN"), 380.42, 0.572, 381.37]
-      apm = ["APM", 387.04, float("NaN"), 402.59, float("NaN"), 432.95]
+      smde = ["SMDE k=2*", 379.62, 379.63, 379.65, 0.0341, 379.73, float("NaN")]
+      duvde = ["DUVDE", 379.66, float("NaN"), 380.42, 0.572, 381.37, float("NaN")]
+      apm = ["APM", 387.04, float("NaN"), 402.59, float("NaN"), 432.95, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -218,7 +222,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
       np2dArr = np.append(np2dArr, [apm[1:]], axis=0)
     elif case == "Discrete":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 385.54, 386.81, 386.91, 1.05e+00, 389.21]
+      smde = ["SMDE k=2*", 385.54, 386.81, 386.91, 1.05e+00, 389.21, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -230,7 +234,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
   elif function == 1942: # 942 bar truss
     if case == "Continuous":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 149932.00, 171218.50, 174369.63, 1.72e+04, 230139.00]
+      smde = ["SMDE k=2*", 149932.00, 171218.50, 174369.63, 1.72e+04, 230139.00, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -239,7 +243,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
       np2dArr = np.append(np2dArr, [smde[1:]], axis=0)
     elif case == "Discrete":
       # Define algorithms and literature results
-      smde = ["SMDE k=2*", 153010.00, 181899.00, 181127.23, 1.73e+04, 216514.00]
+      smde = ["SMDE k=2*", 153010.00, 181899.00, 181127.23, 1.73e+04, 216514.00, float("NaN")]
 
       # Append name of algorihtms
       rowsTitles.append(smde[0])
@@ -332,7 +336,7 @@ def getExtraResults(np2dArr, rowsTitles, index, case, function):
 # Generates statistical measures and generate .tex table
 def makeAnalysis(solutions, functions):
   # Read solutions and store on dataframe
-  case="discrete"
+  # case="discrete"
   for key, solution in enumerate(solutions):
     df = pd.DataFrame.from_records(solution)
     titles = ["Objective Function", "ViolationSum/Fitness"]
@@ -363,7 +367,7 @@ def makeAnalysis(solutions, functions):
     rowsTitles = list(grouped.index.values) 
     columnsTitles = list(grouped.columns.levels[1])
     # Get extra results (appending other algorithms on 2d np arr)
-    np2dArr, rowsTitles = getExtraResults(np2dArr, rowsTitles, key, case, functions[key])
+    np2dArr, rowsTitles = getExtraResults(np2dArr, rowsTitles, key, TRUSS_CASE, functions[key])
     # Generates .text table
     np2dArrToLatex(np2dArr, columnsTitles, rowsTitles)
 
@@ -447,7 +451,7 @@ def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
           print("{:{prec}}".format(item, prec=".0f"), end=" \\\ ")
         # Third to last item of row (std) its printed used scientific notation 
         elif columnIndex == len(row) -3:
-          print("\\textbf{{{:{prec}}}}".format(item, prec="0.2e"), end=" & ")
+          print("{:{prec}}".format(item, prec="0.2e"), end=" & ")
         else:
           print("{:{prec}}".format(item, prec=precFormat), end=" & ")
     print()
@@ -455,6 +459,9 @@ def np2dArrToLatex(np2dArr, columnsTitles, rowsTitles):
   print("\\end{tabular}")
   print("\\\ ")
   print("\\textbf{{{}}}: {}".format("Chosen individual", SELECTED_INDIVIDUAL))
+  if PROBLEMS_TYPE == "Trusses":
+    print("\\textbf{{{}}}: {}".format("Case", TRUSS_CASE))
+
   print("\\end{table}")
   # Begin of table structure .tex
   print()
