@@ -20,6 +20,7 @@ import numpy as np
 import timeit
 import operator as op # For sorting population
 import warnings
+from collections import deque # Double ended queue
 warnings.filterwarnings("error", category=RuntimeWarning)
 from copy import deepcopy
 # np.seterr(all='raise')
@@ -27,6 +28,8 @@ from copy import deepcopy
 # Constants
 DEB = "DEB"
 APM = "APM"
+TOLFUN = 10**-6
+TOLX = 10**-12
 
 AlGORITHM_PARAMS = {
   "function": None,
@@ -572,7 +575,7 @@ class Population(object):
     l2d = arz.tolist() # Transforms matrix in a list of lists
     self.moveArzToPop(l2d)
 
-  def cmaUpdateCovarianceMatrix(self, parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN,BD):
+  def cmaUpdateCovarianceMatrix(self, parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, ps, B, diagD, C, update_count, chiN, BD):
     # nSize = len(self.individuals[0].n)
     # populationList2d = self.selectMuIndividuals(mu)
     # old_centroid = centroid
@@ -666,11 +669,119 @@ class Population(object):
       B = B[:, indx]
       BD = B * diagD
       # print("sellf.printsbest FINAL TRY: {}".format(self.printBest(True, AlGORITHM_PARAMS["constraintHandling"], True)))
-      return centroid, sigma, pc, ps, B, diagD, C, update_count, BD
+      return centroid, sigma, pc, ps, B, diagD, C, update_count, BD, cond
     except (RuntimeWarning, RuntimeError, TypeError, np.linalg.LinAlgError):
     # except:
       print("Covariance matrix did not converge. Restarting algorithm")
       self.cmaRestart = True
+
+  # Returns true if entire population is factible
+  def isAllFactible(self, constraintHandling):
+    for individual in self.individuals:
+      if isInfactible(individual, constraintHandling):
+        return False
+    return True
+
+  # Returns true if entire population is infactible
+  def isAllInfactible(self, constraintHandling):
+    for individual in self.individuals:
+      if not isInfactible(individual, constraintHandling):
+        return False
+    return True
+
+  def restartCriterias(self, constraintHandling, restartCriterias, populationDeque, noEffectAxisIdx, centroid, sigma, cond, pc, B, diagD, C):
+    # restartAlgorithm = False
+    # Check conditions for tolFun
+    # Stop if range of the best objective function values of the last 10 + ⌈30n/λ⌉ generations is zero (equalfunvalhist) or the range of these functions values and all functions values of the recent generation is below TolFun
+    # Last 10 + ⌈30n/λ⌉ objective functions on array, verify tolFun criteria
+    if len(populationDeque) == populationDeque.maxlen:
+      isPopulationDequeFactible = False
+      isAllPopulationFactible = self.isAllFactible(constraintHandling)
+      isAllPopulationInfactible = self.isAllInfactible(constraintHandling)
+
+      # Create list for current generation
+      currentGen = []
+      for individual in self.individuals:
+        currentGen.append(individual)
+        
+      # Bound constrained problems or factible individuals, check only objective function
+      if constraintHandling is None or isAllPopulationFactible:
+        maxCurrentGen = max(currentGen, key=lambda x: min(x.objectiveFunction))
+        minCurrentGen = min(currentGen, key=lambda x: min(x.objectiveFunction))
+        maxPopulationDeque = max(populationDeque, key=lambda x: min(x.objectiveFunction))
+        minPopulationDeque = min(populationDeque, key=lambda x: min(x.objectiveFunction))
+        print("CurrentGen Range tolFun (AllFactible): {} - {} = {}".format(maxCurrentGen.objectiveFunction[0], minCurrentGen.objectiveFunction[0], maxCurrentGen.objectiveFunction[0] - minCurrentGen.objectiveFunction[0]))
+        print("PopulationDeque Range tolFun (AllFactible): {} - {} = {}".format(maxPopulationDeque.objectiveFunction[0], minPopulationDeque.objectiveFunction[0], maxPopulationDeque.objectiveFunction[0] - minPopulationDeque.objectiveFunction[0]))
+        # Returns true if range from all objective functions of current generation is below tolFun
+        isCurrentRangeBelowTolFun = True if maxCurrentGen.objectiveFunction[0] - minCurrentGen.objectiveFunction[0] < TOLFUN else False
+        # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
+        isRangeBelowTolFun = True if maxPopulationDeque.objectiveFunction[0] - minPopulationDeque.objectiveFunction[0] < TOLFUN else False
+        # If both conditions are true, algorithm should be restarted
+        restartCriterias['tolFun'] = True if isRangeBelowTolFun and isCurrentRangeBelowTolFun else False
+      # Entire population is infactible, check which penalty method is being used
+      elif isAllPopulationInfactible:
+        if constraintHandling == DEB:
+          maxCurrentGen = max(currentGen, key=lambda x: x.violationSum)
+          minCurrentGen = min(currentGen, key=lambda x: x.violationSum)
+          maxPopulationDeque = max(populationDeque, key=lambda x: x.violationSum)
+          minPopulationDeque = min(populationDeque, key=lambda x: x.violationSum)
+          print("CurrentGen Range tolFun DEB: {} - {} = {}".format(maxCurrentGen.violationSum, minCurrentGen.violationSum, maxCurrentGen.violationSum - minCurrentGen.violationSum))
+          print("PopulationDeque Range tolFun DEB: {} - {} = {}".format(maxPopulationDeque.violationSum, minPopulationDeque.violationSum, maxPopulationDeque.violationSum - minPopulationDeque.violationSum))
+          # Returns true if range from all objective functions of current generation is below tolFun`
+          isCurrentRangeBelowTolFun = True if maxCurrentGen.violationSum - minCurrentGen.violationSum < TOLFUN else False
+          # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
+          isRangeBelowTolFun = True if maxPopulationDeque.violationSum - minPopulationDeque.violationSum < TOLFUN else False
+          # If both conditions are true, algorithm should be restarted
+          restartCriterias['tolFun'] = True if isRangeBelowTolFun and isCurrentRangeBelowTolFun else False
+        elif constraintHandling == APM:
+          maxCurrentGen = max(currentGen, key=lambda x: x.fitness)
+          minCurrentGen = min(currentGen, key=lambda x: x.fitness)
+          maxPopulationDeque = max(populationDeque, key=lambda x: x.fitness)
+          minPopulationDeque = min(populationDeque, key=lambda x: x.fitness)
+          print("CurrentGen Range tolFun APM: {} - {} = {}".format(maxCurrentGen.fitness, minCurrentGen.fitness, maxCurrentGen.fitness - minCurrentGen.fitness))
+          print("PopulationDeque Range tolFun APM: {} - {} = {}".format(maxPopulationDeque.fitness, minPopulationDeque.fitness, maxPopulationDeque.fitness - minPopulationDeque.fitness))
+          # Returns true if range from all objective functions of current generation is below tolFun`
+          isCurrentRangeBelowTolFun = True if maxCurrentGen.fitness - minCurrentGen.fitness < TOLFUN else False
+          # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
+          isRangeBelowTolFun = True if maxPopulationDeque.fitness - minPopulationDeque.fitness < TOLFUN else False
+          # If both conditions are true, algorithm should be restarted
+          restartCriterias['tolFun'] = True if isRangeBelowTolFun and isCurrentRangeBelowTolFun else False
+      else:
+        print("Population alternating between factibles and infactibles individuals!")
+
+    # Check tolX condition
+    # Stop if the standard deviation of the normal distribution is smaller than in all coordinates and sigma*pc is amller than TolX
+    # All components of pc and sqrt(diag(C)) (standard deviation of the normal distribution) are smaller than the threshold
+    if all(pc < TOLX) and all(np.sqrt(np.diag(C)) < TOLX):
+      # All components of pc and sqrt(diag(C)) are smaller than the threshold
+      restartCriterias["tolX"] = True
+
+    # Check noEffectAxis
+    # Stop if adding 0.1-standard deviation vector in any principal axis direction of C doesnt change m
+    # diagD[-NOEFFECTAXIS_INDEX] equals √λ
+    if all(centroid == centroid + 0.1 * sigma * diagD[-noEffectAxisIdx] * B[-noEffectAxisIdx]):
+        # The coordinate axis std is too low
+        restartCriterias["noEffectAxis"] = True
+
+    # Check noEffectCord
+    # Stop if adding 0.2-standard deviationos in any single coordinate does not change m
+    if any(centroid == centroid + 0.2 * sigma * np.diag(C)):
+      # The main axis std has no effect
+      restartCriterias["noEffectCoord"] = True
+    
+    # Check conditionCov
+    # Stop if the condition number of the covariance matrix exceeds 10e14
+    if cond > 10**14:
+      # The condition number is bigger than a threshold
+      restartCriterias["conditionCov"] = True
+
+
+    # Should restar the search
+    if any(restartCriterias.values()):
+      self.cmaRestart = True
+      # Creates a list of restart causes
+      restartCauses = [k for k, v in restartCriterias.items() if v]
+      print("Restart causes: {}".format(restartCauses))
 
 
 
@@ -1028,7 +1139,26 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   hof = None
   lastFactible = None
   discreteSet = None
+  generation = 0
   status="Initializing"
+
+  
+  restartCriterias = {
+    'tolFun': False,
+    'tolX': False,
+    'noEffectAxis': False,
+    'noEffectCoord': False,
+    'conditionCov': False,
+  }
+  # if not any(conditions.values()): # Check if should restart
+
+  # stop_causes = [k for k, v in conditions.items() if v]
+  # print("Stopped because of condition%s %s" % ((":" if len(stop_causes) == 1 else "s:"), ",".join(stop_causes)))
+
+
+
+
+
 
   # print(AlGORITHM_PARAMS)
   # sys.exit(rweights)
@@ -1038,6 +1168,13 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     constraintHandling = None
 
   # User defined params (if set to None, uses default)
+  # # Search restarted, shouldn't use default population Size
+  # if feval != 0: 
+  #   parentsSize*=2
+  #   centroid = sigma = mu = None
+  # else:
+  #   parentsSize = centroid = sigma = mu = None
+  
   parentsSize = centroid = sigma = mu = None
   # rweights = "equal"
   if case == "discrete":
@@ -1047,8 +1184,14 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   else:
     lowerBound = upperBound = gSize = hSize = truss = None
 
+  
   # Initialize all cmaes params
   parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
+
+  # tolFunSize = 10 + int(numpy.ceil(30. * nSize / parentsSize)) # last 10 + ⌈30n/λ⌉
+  
+  # Last 10 + ⌈30n/λ⌉ generations
+  populationDeque = deque(maxlen=10 + int(np.ceil(30. * nSize / parentsSize)))
 
   global AlGORITHM_PARAMS 
   AlGORITHM_PARAMS = {
@@ -1071,11 +1214,14 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   # CMAESrweights=equal+DEB: T10: 5061.970157299801 | T25: 484.05229151214365 | T60: 311.6048214519769 | T72: 380.0802294286406  
   # CMAES+APM: T10: 5062 | T25: 484 | T60: 313 | T72: 380
   printInitialPopulationInfo("CMA-ES", constraintHandling, function, seed, parentsSize, mu, maxFe, "-", "-", rweights, case)
-
   if feval > maxFe:
     sys.exit("Maximum number of function evaluations too low.")
-  while feval < maxFe:
-    AlGORITHM_PARAMS["feval"] = feval 
+  # While fuctions evaluations and restar criterias not met, go on
+  while feval < maxFe and not any(restartCriterias.values()):
+    # Generation number
+    generation += 1
+    noEffectAxisIdx = generation % nSize # 
+    AlGORITHM_PARAMS["feval"] = feval
     status = "Executing"
     if parents.individuals[0].fitness is not None:
       bestFromLastPopulation = parents.bestIndividual(constraintHandling)
@@ -1083,6 +1229,9 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
 
     for individual in parents.individuals:
+      # print("Individual no for que buga: {}".format(individual))
+      # print("constraintHandling  {}".format(constraintHandling))
+      # FIX Code doesnt work when constraintHandling is set to none because np.isnan(None) throws an exception.
       if(np.isnan(individual.objectiveFunction).any() or np.isnan(individual.violationSum).any() or np.isnan(individual.n).any()):
         parents.cmaRestart = True
         printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, bestFromLastPopulation)
@@ -1105,13 +1254,14 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     print(feval, end=" ")
     parents.printBest(True, constraintHandling, True)
 
-    # Gets hall of fame individual
+    # Gets bests individuals
     hof = parents.hallOfFame(hof, constraintHandling)
     lastFactible = parents.lastFactibleIndividual(lastFactible, constraintHandling)
+    populationDeque.append(parents.bestIndividual(constraintHandling))
 
     # Update covariance matrix strategy from the population
     try:
-      centroid, sigma, pc, ps, B, diagD, C, update_count, BD = parents.cmaUpdateCovarianceMatrix(
+      centroid, sigma, pc, ps, B, diagD, C, update_count, BD, cond = parents.cmaUpdateCovarianceMatrix(
         parentsSize, mu, centroid, sigma, weights, mueff, cc, cs, ccov1, ccovmu, damps, pc, 
         ps, B, diagD, C, update_count, chiN, BD
       )
@@ -1119,6 +1269,15 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     # except (RuntimeWarning, RuntimeError, TypeError, np.linalg.LinAlgError):
       break
 
+  
+    # Check restart criterias
+    # parents.restartCriterias(constraintHandling, restartCriterias, populationDeque, noEffectAxisIdx, centroid, sigma, cond, pc, B, diagD, C)
+
+
+
+
+
+  # if not any(conditions.values()): # Chegck if should restart
 
 
   # Need to restart algorithm?
