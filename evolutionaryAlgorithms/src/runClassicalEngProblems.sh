@@ -64,28 +64,28 @@ do
                 if [ ${algorithms[a]} = CMAES ]
                 then
                   # Tension/compression spring and Speed reducer
-                  if [ ${functions[f]} -eq 21 -o ${functions[f]} -eq 22 ];
+                  if [ ${functions[f]} -eq 21 -o ${functions[f]} -eq 22 ]
                   then
                     maxEval=36000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -w ${weights[w]} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_w${weights[w]}_m${maxEval}_s${seeds[s]}.dat
                   # Welded beam has a max evaluation of 320k
-                  elif [ ${functions[f]} -eq 23 ];
+                  elif [ ${functions[f]} -eq 23 ]
                   then
                     maxEval=320000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -w ${weights[w]} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_w${weights[w]}_m${maxEval}_s${seeds[s]}.dat
                   # Pressure vesel has a max evaluation of 80k
-                  elif [ ${functions[f]} -eq 24 ];
+                  elif [ ${functions[f]} -eq 24 ]
                   then
                     maxEval=80000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -w ${weights[w]} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_w${weights[w]}_m${maxEval}_s${seeds[s]}.dat
                   # Cantilever beam has a max evaluation of 35k
-                  elif [ ${functions[f]} -eq 25 ];
+                  elif [ ${functions[f]} -eq 25 ]
                   then
                     maxEval=35000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
@@ -96,28 +96,28 @@ do
                 elif [ ${algorithms[a]} = DE -a $w -eq 0 ]
                 then
                   # Tension/compression spring and Speed reducer
-                  if [ ${functions[f]} -eq 21 -a -o ${functions[f]} -eq 22 -a ];
+                  if [ ${functions[f]} -eq 21 -o ${functions[f]} -eq 22 ]
                   then
                     maxEval=36000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                   # Welded beam has a max evaluation of 320k
-                  elif [ ${functions[f]} -eq 23 -a ];
+                  elif [ ${functions[f]} -eq 23 ]
                   then
                     maxEval=320000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                   # Pressure vesel has a max evaluation of 80k
-                  elif [ ${functions[f]} -eq 24 -a ];
+                  elif [ ${functions[f]} -eq 24 ]
                   then
                     maxEval=80000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
                     python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
                     ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                   # Cantilever beam has a max evaluation of 35k
-                  elif [ ${functions[f]} -eq 25 -a ];
+                  elif [ ${functions[f]} -eq 25 ]
                   then
                     maxEval=35000
                     echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"

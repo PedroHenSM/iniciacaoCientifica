@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 10 bar truss - Continuous: 280k | Discrete: 240k and 90k
+# 10 bar truss - Continuous: 280k | Discrete: 90k and 240k
 # 25 bar truss - Continuous: 240k | Discrete: 20k
 # 60 bar truss - Continuous: 12k (Rafael), 150k e 800k (Krempser)| Discrete:
 # 72 bar truss - Continuous: 35k | Discrete:
@@ -12,13 +12,15 @@ algorithms=(DE CMAES) # Algorithms
 totalAlgorithms=${#algorithms[@]} 
 
 # functions=(110 125 160 172 1942) # Problems
-functions=(110 ) # Problems
+# functions=(160) # Problems
+functions=(110 125 160 172) # Problems
 totalFunctions=${#functions[@]}
 
-seeds=(1 2) # Seeds
-# seeds=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30) # Seeds
+# seeds=(1 2) # Seeds
+seeds=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30) # Seeds
 totalSeeds=${#seeds[@]}
 
+# problemsCase=(continuous)
 problemsCase=(continuous discrete)
 totalProblemsCase=${#problemsCase[@]}
 
@@ -172,16 +174,16 @@ do
                       if [ ${problemsCase[c]::1} = 'c' ]
                       then
                         maxEval=280000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       # Discrete case
                       elif [ ${problemsCase[c]::1} = 'd' ]
                       then
                         maxEval=90000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       fi
                     # 25 bar truss
                     elif [ ${functions[f]} -eq 125 ]
@@ -190,16 +192,16 @@ do
                       if [ ${problemsCase[c]::1} = 'c' ]
                       then
                         maxEval=240000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       # Discrete case
                       elif [ ${problemsCase[c]::1} = 'd' ]
                       then
                         maxEval=20000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       fi
                     # 60 bar truss
                     elif [ ${functions[f]} -eq 160 ]
@@ -208,17 +210,17 @@ do
                       if [ ${problemsCase[c]::1} = 'c' ]
                       then
                         maxEval=12000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       # Discrete case
                       elif [ ${problemsCase[c]::1} = 'd' ]
                       then
                         : # Does nothing
                         # maxEval=280000
-                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       fi
                     # 72 bar truss
                     elif [ ${functions[f]} -eq 172 ]
@@ -227,17 +229,17 @@ do
                       if [ ${problemsCase[c]::1} = 'c' ]
                       then
                         maxEval=35000
-                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       # Discrete case
                       elif [ ${problemsCase[c]::1} = 'd' ]
                       then
                         : # Does nothing
                         # maxEval=280000
-                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       fi
                     # 942 bar truss
                     elif [ ${functions[f]} -eq 1942 ]
@@ -247,17 +249,17 @@ do
                       then
                         : # Does nothing
                         # maxEval=280000
-                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       # Discrete case
                       elif [ ${problemsCase[c]::1} = 'd' ]
                       then
                         : # Does nothing
                         # maxEval=280000
-                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]}"
-                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} > \
-                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
+                        # echo "Executing algorithm: ${algorithms[a]} seed: ${seeds[s]} constraint handling method: ${constraintHandlings[p]} maxFe: ${maxEval} parentsSize: ${populations[u]} offspringsSize: ${offsprings[l]} function: ${functions[f]} weights: ${weights[w]} case: ${problemsCase[c]}"
+                        # python3 main.py -a ${algorithms[a]} -f ${functions[f]} -s ${seeds[s]} -p ${constraintHandlings[p]} -u ${populations[u]} -l ${offsprings[l]} -m ${maxEval} -c ${problemsCase[c]} > \
+                        # ../results/functions/f${functions[f]}/${algorithms[a]}_f${functions[f]}_c${problemsCase[c]::1}_p${constraintHandlings[p]}_m${maxEval}_s${seeds[s]}.dat
                       fi
                     fi
                   fi
