@@ -10,30 +10,21 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "test/foo.h"
-#include "eureka/F101Truss10Bar.h"
-#include "eureka/F103Truss25Bar.h"
-#include "eureka/F105Truss60Bar.h"
-#include "eureka/F107Truss72Bar.h"
-// #include "eureka/F109Truss942Bar.h"
-// #include "eureka/EurekaOptimaException.h"
+// #include "eureka/F101Truss10Bar.h"
 // #include "eureka/TrussBarStructureStaticProblem.h"
 // #include "eureka/TrussBarStructureStaticSimulator.h"
-#include "eureka/Problem.h"
 
-
-#define USE_PRESSURE
-#define N_VAR 4 // STRING: 3, REDUCER: 7, WELDED: 4, PRESSURE: 4, CANTILEVER: 10, T10C: 10, T10D: 10, T25D: 25, T52D: 52, T60C: 60, T60D: 60, T72C: 72, T942C: 942
-#define N_CON 4 // STRING: 4, REDUCER: 11, WELDED: 5, PRESSURE: 4, CANTILEVER: 11, T10C: 18, T10D:18, T25D: 43, T52D: 32, T60C: 198, T72C: 240, T942C:
+#define USE_T60C
+#define N_VAR 60 // STRING: 3, REDUCER: 7, WELDED: 4, PRESSURE: 4, CANTILEVER: 10, T10C: 10, T10D: 10, T25D: 25, T52D: 52, T60C: 60, T60D: 60, T72C: 72, T942C: 942
+#define N_CON 198 // STRING: 4, REDUCER: 11, WELDED: 5, PRESSURE: 4, CANTILEVER: 11, T10C: 18, T10D:18, T25D: 43, T52D: 32, T60C: 198, T72C: 240, T942C:
 #define MAX_PAR 50
-#define MAX_TIME 1600 // S:720 R:720 W:640/6400 P:1600 C:700 T10C:5600 T10D:3600/1800 T25D:400 T52D:350 T60C:240 T72C:700 T942C:300(acho) 
-#define MAX_RUN 30
+#define MAX_TIME 240 // S:720 R:720 W:640 P:1600 C:700 T10C:5600 T10D:3600 T25D:400 T52D:350 T60C:240 T72C:700 T942C:300(acho) 
+// #define MAX_RUN 35
+#define MAX_RUN 2
 #define INIT 999999999
 
 #define D 3
 #define Dkl 3
-
-using namespace problem;
 
 typedef struct best_particle_s {
 	double * position;
@@ -478,16 +469,16 @@ void calculations (int n, int ** nodesCoord, int ** vector, int numNodes, double
  */	
 swarm_t * allocate () {
 	int i;
-	swarm_t * swarm = (swarm_t *) malloc (sizeof(swarm_t));	
-	swarm->gBest.position = (double *) malloc (N_VAR * sizeof(double));
-	swarm->gBest.v = (float* )malloc (N_CON * sizeof(double));
+	swarm_t * swarm = malloc (sizeof(swarm_t));	
+	swarm->gBest.position = malloc (N_VAR * sizeof(double));
+	swarm->gBest.v = malloc (N_CON * sizeof(double));
 
 	for (i = 0; i < MAX_PAR; i++) {
-		swarm->particles[i].position = (double *) malloc (N_VAR * sizeof(double));
-		swarm->particles[i].velocity = (double *) malloc (N_VAR * sizeof(double));
-		swarm->particles[i].v = (float *) malloc (N_CON * sizeof(double));
-		swarm->particles[i].pBest.position = (double *) malloc (N_VAR * sizeof(double));
-		swarm->particles[i].pBest.v = (float *) malloc (N_CON * sizeof(double));
+		swarm->particles[i].position = malloc (N_VAR * sizeof(double));
+		swarm->particles[i].velocity = malloc (N_VAR * sizeof(double));
+		swarm->particles[i].v = malloc (N_CON * sizeof(double));
+		swarm->particles[i].pBest.position = malloc (N_VAR * sizeof(double));
+		swarm->particles[i].pBest.v = malloc (N_CON * sizeof(double));
 	}
 
 	return swarm;
@@ -677,10 +668,9 @@ void initialize (swarm_t * swarm, double lowerBound[], double upperBound[]) {
 /**
  * Constraint function
  */
-void constraint (swarm_t * swarm, double ** violationAcum, double * violation, double * sumConst, int * numViolation, double valuesArray[MAX_PAR][N_CON+1]) {
+void constraint (swarm_t * swarm, double ** violationAcum, double * violation, double * sumConst, int * numViolation) {
 	int i, j, m, cont1, cont2, cont3;
 	double x[N_VAR], g[N_CON];
-	// printf("\ndentro de constraint");
 
 	for (i = 0; i < MAX_PAR; i++) {
 		for (j = 0; j < N_VAR; j++) {
@@ -814,33 +804,26 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 			x[7] = 21.264076;
 			x[8] = 21.383036;
 			x[9] = 0.10000795;*/
-			// double aux, u[8];
+			double aux, u[8];
 
-			// truss (x, sumConst, u, 0);
+			truss (x, sumConst, u, 0);
 			
-			// for (m = 0; m < 8; m++) {
-			// 	//printf("\nu = %lf ", u[m]);
-			// 	if(u[m] <= 0)
-			// 		aux = -u[m];
-			// 	else
-			// 		aux = u[m];
-			// 	g[m] = aux - 2;
-			// }
+			for (m = 0; m < 8; m++) {
+				//printf("\nu = %lf ", u[m]);
+				if(u[m] <= 0)
+					aux = -u[m];
+				else
+					aux = u[m];
+				g[m] = aux - 2;
+			}
 
-			// for (m = 0; m < N_VAR; m++) {
-			// 	//printf(" sumConst = %lf\n", sumConst[m]);
-			// 	if(sumConst[m] <= 0)
-			// 		aux = -sumConst[m];
-			// 	else
-			// 		aux = sumConst[m]; 
-			// 	g[m + 8] = aux - 25000;
-			// }
-
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			for (m = 0; m < N_CON; m++){
-				g[m] = valuesArray[i][m+1];
+			for (m = 0; m < N_VAR; m++) {
+				//printf(" sumConst = %lf\n", sumConst[m]);
+				if(sumConst[m] <= 0)
+					aux = -sumConst[m];
+				else
+					aux = sumConst[m]; 
+				g[m + 8] = aux - 25000;
 			}
 		#endif
 
@@ -856,40 +839,33 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 			x[8] = 22.0;
 			x[9] = 1.62;*/
 
-			// double aux, u[8];
+			double aux, u[8];
 
-			// double tab[] = {1.62, 1.80, 1.99, 2.13, 2.38, 2.62, 2.93, 3.13, 3.38, 3.47, 3.55, 3.63, 3.88, 4.22, 4.49, 4.59, 4.80, 4.97, 5.12, 5.74, 7.97, 11.50, 13.50, 14.20, 15.50, 16.90, 18.80, 19.90, 22.00, 26.50, 30.00, 33.50};
-			// int pos;
-			// for (j = 0; j < N_VAR; j++) {
-			// 	pos = round(x[j]);
-			// 	x[j] = tab[pos];
-			// }
+			double tab[] = {1.62, 1.80, 1.99, 2.13, 2.38, 2.62, 2.93, 3.13, 3.38, 3.47, 3.55, 3.63, 3.88, 4.22, 4.49, 4.59, 4.80, 4.97, 5.12, 5.74, 7.97, 11.50, 13.50, 14.20, 15.50, 16.90, 18.80, 19.90, 22.00, 26.50, 30.00, 33.50};
+			int pos;
+			for (j = 0; j < N_VAR; j++) {
+				pos = round(x[j]);
+				x[j] = tab[pos];
+			}
 
-			// truss (x, sumConst, u, 0);
+			truss (x, sumConst, u, 0);
 
-			// for (m = 0; m < 8; m++) {
-			// 	//printf("\nu = %lf ", u[m]);
-			// 	if(u[m] <= 0)
-			// 		aux = -u[m];
-			// 	else
-			// 		aux = u[m];
-			// 	g[m] = aux - 2;
-			// }
+			for (m = 0; m < 8; m++) {
+				//printf("\nu = %lf ", u[m]);
+				if(u[m] <= 0)
+					aux = -u[m];
+				else
+					aux = u[m];
+				g[m] = aux - 2;
+			}
 
-			// for (m = 0; m < N_VAR; m++) {
-			// 	//printf(" sumConst = %lf\n", sumConst[m]);
-			// 	if(sumConst[m] <= 0)
-			// 		aux = -sumConst[m];
-			// 	else
-			// 		aux = sumConst[m]; 
-			// 	g[m + 8] = aux - 25000;
-			// }
-
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			for (m = 0; m < N_CON; m++){
-				g[m] = valuesArray[i][m+1];
+			for (m = 0; m < N_VAR; m++) {
+				//printf(" sumConst = %lf\n", sumConst[m]);
+				if(sumConst[m] <= 0)
+					aux = -sumConst[m];
+				else
+					aux = sumConst[m]; 
+				g[m + 8] = aux - 25000;
 			}
 		#endif
 
@@ -917,52 +893,37 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 				g[m + 18] = aux - 40000;
 			}
 
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			// for (m = 0; m < N_CON; m++){
-			for (m = 0; m < 29; m++){
-				g[m] = valuesArray[i][m+1];
-			}
-
 		#endif
 
 		#ifdef USE_T25D
 
-			// double aux, u[18];
+			double aux, u[18];
 
-			// double tab[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.8, 3.0, 3.2, 3.4};
-			// int pos;
-			// for (j = 0; j < N_VAR; j++) {
-			// 	pos = round(x[j]);
-			// 	x[j] = tab[pos];
-			// }
+			double tab[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.8, 3.0, 3.2, 3.4};
+			int pos;
+			for (j = 0; j < N_VAR; j++) {
+				pos = round(x[j]);
+				x[j] = tab[pos];
+			}
 
-			// truss (x, sumConst, u, 0);
+			truss (x, sumConst, u, 0);
 			
-			// for (m = 0; m < 18; m++) {
-			// 	//printf("\nu = %lf ", u[m]);
-			// 	if(u[m] <= 0)
-			// 		aux = -u[m];
-			// 	else
-			// 		aux = u[m];
-			// 	g[m] = aux - 0.35;
-			// }
+			for (m = 0; m < 18; m++) {
+				//printf("\nu = %lf ", u[m]);
+				if(u[m] <= 0)
+					aux = -u[m];
+				else
+					aux = u[m];
+				g[m] = aux - 0.35;
+			}
 
-			// for (m = 0; m < N_VAR; m++) {
-			// 	//printf(" sumConst = %lf\n", sumConst[m]);
-			// 	if(sumConst[m] <= 0)
-			// 		aux = -sumConst[m];
-			// 	else
-			// 		aux = sumConst[m]; 
-			// 	g[m + 18] = aux - 40000;
-			// }
-
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			for (m = 0; m < N_CON; m++){
-				g[m] = valuesArray[i][m+1];
+			for (m = 0; m < N_VAR; m++) {
+				//printf(" sumConst = %lf\n", sumConst[m]);
+				if(sumConst[m] <= 0)
+					aux = -sumConst[m];
+				else
+					aux = sumConst[m]; 
+				g[m + 18] = aux - 40000;
 			}
 
 		#endif
@@ -1007,95 +968,81 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 		#endif
 		
 		#ifdef USE_T60C
-			// int cont, cont2, casos = 3;
-			// double aux, u[45], auxG[N_CON / 3];
+			int cont, cont2, casos = 3;
+			double aux, u[45], auxG[N_CON / 3];
 			
-			// for (cont = 0; cont < casos; cont++) {
-			// 	truss (x, sumConst, u, cont);
+			for (cont = 0; cont < casos; cont++) {
+				truss (x, sumConst, u, cont);
 					
-			// 	for (m = 0; m < 45; m++) {
-			// 		if(u[m] <= 0)
-			// 			aux = -u[m];
-			// 		else
-			// 			aux = u[m];
-			// 		if (m == 6)
-			// 			auxG[0] = aux - 1.75;
-			// 		else if (m == 7)
-			// 			auxG[1] = aux - 1.75;
-			// 		else if (m == 22)
-			// 			auxG[2] = aux - 2.25;
-			// 		else if (m == 23)
-			// 			auxG[3] = aux - 2.25;
-			// 		else if (m == 33)
-			// 			auxG[4] = aux - 2.75;
-			// 		else if (m == 34)
-			// 			auxG[5] = aux - 2.75;
+				for (m = 0; m < 45; m++) {
+					if(u[m] <= 0)
+						aux = -u[m];
+					else
+						aux = u[m];
+					if (m == 6)
+						auxG[0] = aux - 1.75;
+					else if (m == 7)
+						auxG[1] = aux - 1.75;
+					else if (m == 22)
+						auxG[2] = aux - 2.25;
+					else if (m == 23)
+						auxG[3] = aux - 2.25;
+					else if (m == 33)
+						auxG[4] = aux - 2.75;
+					else if (m == 34)
+						auxG[5] = aux - 2.75;
 
-			// 	}
+				}
 
-			// 	for (m = 0; m < N_VAR; m++) {
-			// 		if(sumConst[m] <= 0)
-			// 			aux = -sumConst[m];
-			// 		else
-			// 			aux = sumConst[m]; 
-			// 		auxG[m + 6] = aux - 10000;
-			// 	}
+				for (m = 0; m < N_VAR; m++) {
+					if(sumConst[m] <= 0)
+						aux = -sumConst[m];
+					else
+						aux = sumConst[m]; 
+					auxG[m + 6] = aux - 10000;
+				}
 
-			// 	for (cont2 = 0; cont2 < (N_CON / 3); cont2++) {
-			// 		if (cont == 0)
-			// 			g[cont2] = auxG[cont2]; 
-			// 		else if (cont == 1)
-			// 			g[cont2 + 66] = auxG[cont2]; 	
-			// 		else 
-			// 			g[cont2 + 132] = auxG[cont2]; 	
-			// 	}
-			// }
-
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			for (m = 0; m < N_CON; m++){
-				g[m] = valuesArray[i][m+1];
+				for (cont2 = 0; cont2 < (N_CON / 3); cont2++) {
+					if (cont == 0)
+						g[cont2] = auxG[cont2]; 
+					else if (cont == 1)
+						g[cont2 + 66] = auxG[cont2]; 	
+					else 
+						g[cont2 + 132] = auxG[cont2]; 	
+				}
 			}
 
 		#endif
 
 
 		#ifdef USE_T72C
-			// int cont, cont2, casos = 2;
-			// double aux, u[48], auxG[N_CON / 2];
+			int cont, cont2, casos = 2;
+			double aux, u[48], auxG[N_CON / 2];
 			
-			// for (cont = 0; cont < casos; cont++) {
-			// 	truss (x, sumConst, u, cont);
+			for (cont = 0; cont < casos; cont++) {
+				truss (x, sumConst, u, cont);
 					
-			// 	for (m = 0; m < 48; m++) {
-			// 		if(u[m] <= 0)
-			// 			aux = -u[m];
-			// 		else
-			// 			aux = u[m];
-			// 		auxG[m] = aux - 0.25;
-			// 	}
+				for (m = 0; m < 48; m++) {
+					if(u[m] <= 0)
+						aux = -u[m];
+					else
+						aux = u[m];
+					auxG[m] = aux - 0.25;
+				}
 
-			// 	for (m = 0; m < N_VAR; m++) {
-			// 		if(sumConst[m] <= 0)
-			// 			aux = -sumConst[m];
-			// 		else
-			// 			aux = sumConst[m]; 
-			// 		auxG[m + 48] = aux - 25000;
-			// 	}
-			// 	for (cont2 = 0; cont2 < (N_CON / 2); cont2++) {
-			// 		if (cont == 0)
-			// 			g[cont2] = auxG[cont2]; 
-			// 		else
-			// 			g[cont2 + 120] = auxG[cont2]; 	
-			// 	}	
-			// }
-
-			// PEDRO
-			// Passes the constraints values to 'g' array
-			// (the first position from 'valuesArray' is the objective Function)
-			for (m = 0; m < N_CON; m++){
-				g[m] = valuesArray[i][m+1];
+				for (m = 0; m < N_VAR; m++) {
+					if(sumConst[m] <= 0)
+						aux = -sumConst[m];
+					else
+						aux = sumConst[m]; 
+					auxG[m + 48] = aux - 25000;
+				}
+				for (cont2 = 0; cont2 < (N_CON / 2); cont2++) {
+					if (cont == 0)
+						g[cont2] = auxG[cont2]; 
+					else
+						g[cont2 + 120] = auxG[cont2]; 	
+				}	
 			}
 		#endif
 
@@ -1124,8 +1071,6 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 		#endif
 
 
-		// printf("dentro de constraint");
-
 		sumConst[i] = 0.;
 
 		for (m = 0; m < N_CON; m++) {
@@ -1140,17 +1085,14 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 			} 	
 		} 
 	}
-	// printf("ultima linha constraint");
-	// exit(1);
 }
 
 /**
  * APM function - penalty method
  */
-void APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, quadrado = 0.;
-	
 
 	if (functionAvg > 0)
 		functionAvgK = functionAvg;
@@ -1168,9 +1110,7 @@ void APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAc
 		}
 	}
 
-	// printf("pre constraint");
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);
-	// printf("pós constraint");
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);
 
 	for (i = 0; i < N_CON; i++) { 
 		violation[i] = violation[i] / MAX_PAR; 
@@ -1250,7 +1190,7 @@ void APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAc
 /**
  * Sporadic APM function - penalty method
  */
-void sporadic_APM (swarm_t * swarm, double functionAvg, double * k,  double ** violationAcum, int generation, double valuesArray[MAX_PAR][N_CON+1]) {
+void sporadic_APM (swarm_t * swarm, double functionAvg, double * k,  double ** violationAcum, int generation) {
 	int i, j, numViolation[N_CON], frequency = MAX_TIME / 10;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux;
 	
@@ -1264,7 +1204,7 @@ void sporadic_APM (swarm_t * swarm, double functionAvg, double * k,  double ** v
 		numViolation[i] = 0; 
 	}
 
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);
 
 	// Calculate k
 	if(generation % frequency == 0) {
@@ -1338,7 +1278,7 @@ void sporadic_APM (swarm_t * swarm, double functionAvg, double * k,  double ** v
 /**
  * Sporadic Acumulation APM function - penalty method
  */
-void sporadic_acumulation_APM (swarm_t * swarm, double functionAvg, double * k,  double ** violationAcum, int generation, double valuesArray[MAX_PAR][N_CON+1]) {
+void sporadic_acumulation_APM (swarm_t * swarm, double functionAvg, double * k,  double ** violationAcum, int generation) {
 	int i, j, numViolation[N_CON], frequency = MAX_TIME / 10;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux;
 	
@@ -1351,7 +1291,7 @@ void sporadic_acumulation_APM (swarm_t * swarm, double functionAvg, double * k, 
 		numViolation[i] = 0;
 	}
 
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	// Calculate k
 	if(generation % frequency == 0) {
@@ -1438,7 +1378,7 @@ void sporadic_acumulation_APM (swarm_t * swarm, double functionAvg, double * k, 
 /**
  * Monotonic APM function - penalty method
  */
-void monotonic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void monotonic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], k[N_CON], functionAvgK, function, aux;
 	
@@ -1452,7 +1392,7 @@ void monotonic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	for (i = 0; i < N_CON; i++) 
 			violation[i] = violation[i] / MAX_PAR;
@@ -1527,7 +1467,7 @@ void monotonic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double
 /**
  * Monotonic Sporadic APM function - penalty method
  */
-void monotonic_sporadic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double ** violationAcum, int generation, double valuesArray[MAX_PAR][N_CON+1]) {
+void monotonic_sporadic_APM (swarm_t * swarm, double functionAvg, double * k_aux,  double ** violationAcum, int generation) {
 	int i, j, numViolation[N_CON], frequency = MAX_TIME / 10;
 	double violation[N_CON], sumConst[MAX_PAR], k[N_CON], functionAvgK, function, aux;
 	
@@ -1541,7 +1481,7 @@ void monotonic_sporadic_APM (swarm_t * swarm, double functionAvg, double * k_aux
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	for (i = 0; i < N_CON; i++) 
 			violation[i] = violation[i] / MAX_PAR;
@@ -1619,7 +1559,7 @@ void monotonic_sporadic_APM (swarm_t * swarm, double functionAvg, double * k_aux
 /**
  * Damping APM function - penalty method
  */
-void damping_APM (swarm_t * swarm, double functionAvg, double * k_aux, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void damping_APM (swarm_t * swarm, double functionAvg, double * k_aux, double ** violationAcum) {
 	int i, j, numViolation[N_CON], frequency = MAX_TIME / 10;
 	double violation[N_CON], sumConst[MAX_PAR], k[N_CON], functionAvgK, function, aux, theta = 0.5;
 
@@ -1633,7 +1573,7 @@ void damping_APM (swarm_t * swarm, double functionAvg, double * k_aux, double **
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	for (i = 0; i < N_CON; i++) 
 			violation[i] = violation[i] / MAX_PAR;
@@ -1708,7 +1648,7 @@ void damping_APM (swarm_t * swarm, double functionAvg, double * k_aux, double **
 /**
  * worst APM function - penalty method
  */
-void worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s;
 
@@ -1722,7 +1662,7 @@ void worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	worst = functionAvg;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -1802,7 +1742,7 @@ void worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * worst 2 APM function - penalty method
  */
-void worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s;
 
@@ -1816,7 +1756,7 @@ void worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** vio
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	worst = functionAvg;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -1896,7 +1836,7 @@ void worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** vio
 /**
  * worst 3 APM function - penalty method
  */
-void worst_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void worst_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s;
 
@@ -1910,7 +1850,7 @@ void worst_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** vio
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	worst = functionAvg;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -1990,7 +1930,7 @@ void worst_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** vio
 /**
  * med APM function - penalty method
  */
-void med_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON];
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s;
 
@@ -2004,7 +1944,7 @@ void med_APM (swarm_t * swarm, double functionAvg, double * k, double ** violati
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	for (i = 0; i < N_CON; i++) {
 		if (!numViolation[i])
@@ -2079,7 +2019,7 @@ void med_APM (swarm_t * swarm, double functionAvg, double * k, double ** violati
 /**
  * med 2 APM function - penalty method
  */
-void med_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2093,7 +2033,7 @@ void med_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2182,7 +2122,7 @@ void med_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med 3 APM function - penalty method
  */
-void med_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2196,7 +2136,7 @@ void med_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2284,7 +2224,7 @@ void med_3_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med 4 APM function - penalty method
  */
-void med_4_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_4_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2298,7 +2238,7 @@ void med_4_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2386,7 +2326,7 @@ void med_4_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med 5 APM function - penalty method
  */
-void med_5_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_5_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2400,7 +2340,7 @@ void med_5_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2485,7 +2425,7 @@ void med_5_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med 6 APM function - penalty method
  */
-void med_6_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_6_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2499,7 +2439,7 @@ void med_6_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2585,7 +2525,7 @@ void med_6_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med 7 APM function - penalty method
  */
-void med_7_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_7_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2599,7 +2539,7 @@ void med_7_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	ind = 0;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2685,7 +2625,7 @@ void med_7_APM (swarm_t * swarm, double functionAvg, double * k, double ** viola
 /**
  * med worst APM function - penalty method
  */
-void med_worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2699,7 +2639,7 @@ void med_worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** v
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	worst = functionAvg;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2782,7 +2722,7 @@ void med_worst_APM (swarm_t * swarm, double functionAvg, double * k, double ** v
 /**
  * med worst 2 APM function - penalty method
  */
-void med_worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum, double valuesArray[MAX_PAR][N_CON+1]) {
+void med_worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double ** violationAcum) {
 	int i, j, numViolation[N_CON], ind;
 	double violation[N_CON], sumConst[MAX_PAR], functionAvgK, function, aux, worst, s, sumViolation;
 
@@ -2796,7 +2736,7 @@ void med_worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double **
 		numViolation[i] = 0;
 	}
 	
-	constraint (swarm, violationAcum, violation, sumConst, numViolation, valuesArray);	
+	constraint (swarm, violationAcum, violation, sumConst, numViolation);	
 
 	worst = functionAvg;
 	for (i = 0; i < MAX_PAR; i++) {
@@ -2879,33 +2819,16 @@ void med_worst_2_APM (swarm_t * swarm, double functionAvg, double * k, double **
 /**
  * Fitness function - executes the objective function.
  */
-void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generation, F101Truss10Bar * truss) {
-
+void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generation) {
 	int i, j, m, cont1, cont2, cont3;
 	double x[N_VAR], functionAvg = 0., function = 0., length[N_VAR];
-	double xTEST[truss->getDimension()];
 
-	// PEDRO
-	// if (truss->getNumberConstraints() != N_CON){
-	// 	printf("Error . Truss constraints differs from N_CON. N_CON: %d\t truss.getNumberConstraints(): %d\n", N_CON, truss->getNumberConstraints());
-	// 	printf("N_VAR: %d\tTruss dimension: %d\n", N_VAR, truss->getDimension());
-	// 	exit (1);
-	// }
-	// double valuesArray[MAX_PAR][truss->getNumberConstraints() + 1]; // objectiveFunction size + number of constraints
-	double valuesArray[MAX_PAR][N_CON + 1]; // objectiveFunction size + number of constraints
-	// printf("declarou, number constraints: %d \n", truss->getNumberConstraints());
 	for (i = 0; i < MAX_PAR; i++) {
 		for (j = 0; j < N_VAR; j++) {
 			x[j] = swarm->particles[i].position[j];
 			//printf("x(fit) = %lf  ", x[j]);
 		}
 		//printf("\n");
-		
-		// printf("Array de x em fitness\n");
-		// for ( j = 0; j< N_VAR; j++){
-		// 	printf("%f ", x[j]);
-		// }
-		// printf("\n");
 
 		// Functions
 		#ifdef USE_STRING
@@ -2996,25 +2919,11 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			x[8] = 21.383036;
 			x[9] = 0.10000795;*/
 
-			
 			function = 0.;
 			for (j = 0; j < N_VAR; j++) {
 				function += x[j] * length[j];
 			}
 			//function /= 10;
-
-			// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-			truss->evaluation(x, valuesArray[i]);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
-			// printf("Constraints: \t");
-			// for (j =0; j < truss->getNumberConstraints() + 2; ++j){
-			// 	printf("%f ", valuesArray[i][j]);
-			// 	// printf("%f ", valuesArrayTest[j]);
-			// }
-			// exit(4);
-
 		#endif
 
 		#ifdef USE_T10D
@@ -3032,17 +2941,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			x[8] = 22.0;
 			x[9] = 1.62;*/
 
-			x[0] = 30.999442;
-			x[1] = 0.214494;
-			x[2] = 28.288087;
-			x[3] = 24.951834;
-			x[4] = 0.001618;
-			x[5] = 0.440247;
-			x[6] = 20.079916;
-			x[7] = 27.867945;
-			x[8] = 28.277859;
-			x[9] = 0.000000;
-
 			double tab[] = {1.62, 1.80, 1.99, 2.13, 2.38, 2.62, 2.93, 3.13, 3.38, 3.47, 3.55, 3.63, 3.88, 4.22, 4.49, 4.59, 4.80, 4.97, 5.12, 5.74, 7.97, 11.50, 13.50, 14.20, 15.50, 16.90, 18.80, 19.90, 22.00, 26.50, 30.00, 33.50};
 			int pos;
 			for (j = 0; j < N_VAR; j++) {
@@ -3055,21 +2953,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 				function += x[j] * length[j];
 			}
 			//function /= 10;
-
-			// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-
-			printf("generation: %d", generation);
-			int itP;
-			printf("Printing xtests (design variables)\n");
-			for(itP=0 ;itP<10 ;itP++){
-				printf("x[%d] = %f\n", itP, x[itP]);
-			}
-			printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			exit(5);
-			truss->evaluation(x, valuesArray[i]);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
 		#endif
 
 		#ifdef USE_T25C
@@ -3122,34 +3005,10 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 				function += x[j] * length[j];
 			}
 			function /= 10;
-
-			// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-			truss->evaluation(x, valuesArray[i]);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
 		#endif
 
 		#ifdef USE_T25D
 			
-			// // MODIFICADO POR PEDRO
-			// // Evaluate using Eureka
-			// printf("X array: \t");
-			// for (j = 0; j < truss->getDimension(); ++j){
-			// 	printf("%f ", x[j]);
-			// }
-			// truss->evaluation(x, valuesArray[i]);
-			// // printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// // function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
-			// printf("\n");
-			// // printf("function (objFunc): %f\n",  valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// printf("Constraints: \t");
-			// for (j =0; j < truss->getNumberConstraints() + 2; ++j){
-			// 	printf("%f ", valuesArray[i][j]);
-			// }
-			// printf("\n");
-			// // exit(3);
-
 			length[0] = 75.000000; 
 			length[1] = 130.503831; 
 			length[2] = 130.503831;
@@ -3176,8 +3035,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			length[23] = 133.463478; 
 			length[24] = 133.463478;
 
-
-
 			swarm->particles[i].position[2] = swarm->particles[i].position[3] = swarm->particles[i].position[4] = swarm->particles[i].position[1];
 			swarm->particles[i].position[6] = swarm->particles[i].position[7] = swarm->particles[i].position[8] = swarm->particles[i].position[5];
 			swarm->particles[i].position[10] = swarm->particles[i].position[9];
@@ -3185,33 +3042,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			swarm->particles[i].position[14] = swarm->particles[i].position[15] = swarm->particles[i].position[16] = swarm->particles[i].position[13];
 			swarm->particles[i].position[18] = swarm->particles[i].position[19] = swarm->particles[i].position[20] = swarm->particles[i].position[17];
 			swarm->particles[i].position[22] = swarm->particles[i].position[23] = swarm->particles[i].position[24] = swarm->particles[i].position[21];
-
-			// x[0] = 0.043417;
-			// x[1] = 2.417307;
-			// x[2] = 2.417307;
-			// x[3] = 2.417307;
-			// x[4] = 2.417307;
-			// x[5] = 28.999588;
-			// x[6] = 28.999588;
-			// x[7] = 28.999588;
-			// x[8] = 28.999588;
-			// x[9] = 0.068685;
-			// x[10] = 0.068685;
-			// x[11] = 19.736034;
-			// x[12] = 19.736034;
-			// x[13] = 9.427932;
-			// x[14] = 9.427932;
-			// x[15] = 9.427932;
-			// x[16] = 9.427932;
-			// x[17] = 4.331147;
-			// x[18] = 4.331147;
-			// x[19] = 4.331147;
-			// x[20] = 4.331147;
-			// x[21] = 29.000000;
-			// x[22] = 29.000000;
-			// x[23] = 29.000000;
-			// x[24] = 29.000000;
-
 
 			x[2] = x[3] = x[4] = x[1];
 			x[6] = x[7] = x[8] = x[5];
@@ -3221,84 +3051,18 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			x[18] = x[19] = x[20] = x[17];
 			x[22] = x[23] = x[24] = x[21];
 
-			xTEST[0] = x[0];
-			xTEST[1] = x[4];
-			xTEST[2] = x[8];
-			xTEST[3] = x[10];
-			xTEST[4] = x[12];
-			xTEST[5] = x[16];
-			xTEST[6] = x[20];
-			xTEST[7] = x[24];
-			
-			
-		// x[0] = 0.100000
-		// x[1] = 0.300000
-		// x[2] = 3.400000
-		// x[3] = 0.100000
-		// x[4] = 2.100000
-		// x[5] = 1.000000
-		// x[6] = 0.500000
-		// x[7] = 3.400000
-
-
-
 			double tab[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.8, 3.0, 3.2, 3.4};
 			int pos;
 			for (j = 0; j < N_VAR; j++) {
 				pos = round(x[j]);
 				x[j] = tab[pos];
-				if (j < 8){ // number of constraints
-					pos = round(xTEST[j]);
-					xTEST[j] = tab[pos];
-				}
 			}
-			// printf("X APÓS DISCRETIZAR: \t");
-			// for (j = 0; j < truss->getDimension(); ++j){
-			// 	printf("%f ", xTEST[j]);
-			// }
-			// printf("\n");
-
-			truss->evaluation(xTEST, valuesArray[i]);
-
-
 
 			function = 0.;
 			for (j = 0; j < N_VAR; j++) {
 				function += x[j] * length[j];
 			}
 			function /= 10;
-
-			// // MODIFICADO POR PEDRO
-			// // Evaluate using Eureka
-			// printf("X array: \t");
-			// for (j = 0; j < truss->getDimension(); ++j){
-			// 	printf("%f ", x[j]);
-			// }
-			// printf("\n");
-			// // truss->evaluation(x, valuesArray[i]);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// // function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
-			// printf("\n");
-			// // printf("function (objFunc): %f\n",  valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// printf("Constraints: \t");
-			// for (j =0; j < truss->getNumberConstraints() + 2; ++j){
-			// 	printf("%f ", valuesArray[i][j]);
-			// }
-			// printf("\n");
-			// // exit(3);
-
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
-			// printf("generation: %d", generation);
-			// // int itP;
-			// printf("Printing xtests (design variables)\n");
-			// for(itP=0 ;itP<8 ;itP++){
-			// 	printf("x[%d] = %f\n", itP, xTEST[itP]);
-			// }
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// exit(5);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// exit(3);
-
 		#endif
 
 		#ifdef USE_T52C
@@ -3487,33 +3251,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 		#endif
 
 		#ifdef USE_T60C
-
-				// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-			// x[0] = 0.5;
-			// x[1] = 1;
-			// x[2] = 2.5;
-			// x[3] = 3;
-			// x[4] = 3.5;
-			// x[5] = 4;
-			// x[6] = 4.5;
-			// x[7] = 5;
-
-			// printf("X array: \t");
-			// for (j = 0; j < truss->getDimension(); ++j){
-			// 	printf("%f ", x[j]);
-			// }
-			// truss->evaluation(x, valuesArray[i]);
-			// // printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// // function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
-			// printf("\n");
-			// // printf("function (objFunc): %f\n",  valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// printf("Constraints: \t");
-			// for (j =0; j < truss->getNumberConstraints() + 2; ++j){
-			// 	printf("%f ", valuesArray[i][j]);
-			// }
-			// printf("\n");
-			// exit(3);
 
 			length[0] = 51.763809;
 			length[1] = 51.763808;
@@ -3611,195 +3348,11 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 				function += x[j] * length[j];
 			}
 			function /= 10;
-
-			// this->grouping[0] = 1;
-			// this->grouping[1] = 2;
-			// this->grouping[2] = 3;
-			// this->grouping[3] = 4;
-			// this->grouping[4] = 5;
-			// this->grouping[5] = 6;
-			// this->grouping[6] = 7;
-			// this->grouping[7] = 8;
-			// this->grouping[8] = 9;
-			// this->grouping[9] = 10;
-			// this->grouping[10] = 11;
-			// this->grouping[11] = 12;
-			// this->grouping[12] = 1;
-			// this->grouping[13] = 2;
-			// this->grouping[14] = 3;
-			// this->grouping[15] = 4;
-			// this->grouping[16] = 5;
-			// this->grouping[17] = 6;
-			// this->grouping[18] = 7;
-			// this->grouping[19] = 8;
-			// this->grouping[20] = 9;
-			// this->grouping[21] = 10;
-			// this->grouping[22] = 11;
-			// this->grouping[23] = 12;
-			// this->grouping[24] = 13;
-			// this->grouping[25] = 14;
-			// this->grouping[26] = 15;
-			// this->grouping[27] = 16;
-			// this->grouping[28] = 17;
-			// this->grouping[29] = 18;
-			// this->grouping[30] = 19;
-			// this->grouping[31] = 20;
-			// this->grouping[32] = 21;
-			// this->grouping[33] = 22;
-			// this->grouping[34] = 23;
-			// this->grouping[35] = 24;
-			// this->grouping[36] = 13;
-			// this->grouping[37] = 14;
-			// this->grouping[38] = 15;
-			// this->grouping[39] = 16;
-			// this->grouping[40] = 17;
-			// this->grouping[41] = 18;
-			// this->grouping[42] = 19;
-			// this->grouping[43] = 20;
-			// this->grouping[44] = 21;
-			// this->grouping[45] = 22;
-			// this->grouping[46] = 23;
-			// this->grouping[47] = 24;
-			// this->grouping[48] = 0;
-			// this->grouping[49] = 0;
-			// this->grouping[50] = 0;
-			// this->grouping[51] = 0;
-			// this->grouping[52] = 0;
-			// this->grouping[53] = 0;
-			// this->grouping[54] = 0;
-			// this->grouping[55] = 0;
-			// this->grouping[56] = 0;
-			// this->grouping[57] = 0;
-			// this->grouping[58] = 0;
-			// this->grouping[59] = 0;
-			// Best solution (below)
-			// x[0] = 2.102395;
-			// x[1] = 0.503932;
-			// x[2] = 2.000652;
-			// x[3] = 1.932965;
-			// x[4] = 0.573366;
-			// x[5] = 1.893816;
-			// x[6] = 1.925602;
-			// x[7] = 1.060730;
-			// x[8] = 1.764067;
-			// x[9] = 1.615935;
-			// x[10] = 0.506942;
-			// x[11] = 2.129686;
-			// x[12] = 2.102395;
-			// x[13] = 0.503932;
-			// x[14] = 2.000652;
-			// x[15] = 1.932965;
-			// x[16] = 0.573366;
-			// x[17] = 1.893816;
-			// x[18] = 1.925602;
-			// x[19] = 1.060730;
-			// x[20] = 1.764067;
-			// x[21] = 1.615935;
-			// x[22] = 0.506942;
-			// x[23] = 2.129686;
-			// x[24] = 1.264224;
-			// x[25] = 1.154981;
-			// x[26] = 0.508007;
-			// x[27] = 0.709542;
-			// x[28] = 0.989056;
-			// x[29] = 1.140337;
-			// x[30] = 1.139156;
-			// x[31] = 1.072108;
-			// x[32] = 1.077415;
-			// x[33] = 0.623711;
-			// x[34] = 1.090640;
-			// x[35] = 1.259983;
-			// x[36] = 1.264224;
-			// x[37] = 1.154981;
-			// x[38] = 0.508007;
-			// x[39] = 0.709542;
-			// x[40] = 0.989056;
-			// x[41] = 1.140337;
-			// x[42] = 1.139156;
-			// x[43] = 1.072108;
-			// x[44] = 1.077415;
-			// x[45] = 0.623711;
-			// x[46] = 1.090640;
-			// x[47] = 1.259983;
-			// x[48] = 1.168084;
-			// x[49] = 1.168084;
-			// x[50] = 1.168084;
-			// x[51] = 1.168084;
-			// x[52] = 1.168084;
-			// x[53] = 1.168084;
-			// x[54] = 1.168084;
-			// x[55] = 1.168084;
-			// x[56] = 1.168084;
-			// x[57] = 1.168084;
-			// x[58] = 1.168084;
-			// x[59] = 1.168084;
-
-			xTEST[0] = x[48]; // 49-60
-			xTEST[1] = x[0]; // 1 e 13
-			xTEST[2] = x[1]; // 2 e 14
-			xTEST[3] = x[2]; // 3 e 15
-			xTEST[4] = x[3]; // 4 e 16
-			xTEST[5] = x[4]; // 5 e 17
-			xTEST[6] = x[5]; // 6 e 18
-			xTEST[7] = x[6]; // 7 e 19
-			xTEST[8] = x[7]; // 8 e 20
-			xTEST[9] = x[8]; // 9 e 21
-			xTEST[10] = x[9]; // 10 e 22
-			xTEST[11] = x[10]; // 11 e 23
-			xTEST[12] = x[11]; // 12 e 24
-			xTEST[13] = x[24]; // 25 e 37
-			xTEST[14] = x[25]; // 26 e 38
-			xTEST[15] = x[26]; // 27 e 39
-			xTEST[16] = x[27]; // 28 e 40
-			xTEST[17] = x[28]; // 29 e 41
-			xTEST[18] = x[29]; // 30 e 42
-			xTEST[19] = x[30]; // 31 e 43
-			xTEST[20] = x[31]; // 32 e 44
-			xTEST[21] = x[32]; // 33 e 45
-			xTEST[22] = x[33]; // 34 e 46
-			xTEST[23] = x[34]; // 35 e 47
-			xTEST[24] = x[35]; // 36 e 48
-
-			// printf("Grouped project variables for 60bars");
-			// int itP;
-			// printf("Printing xtests (design variables)");
-			// for(itP=0 ;itP<25 ;itP++){
-			// 	printf("x[%d] = %f ", itP, xTEST[itP]);
-			// }
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// exit(5);
-
-
-
-			// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-			// truss->evaluation(x, valuesArray[i]);
-			truss->evaluation(xTEST, valuesArray[i]);
-			// printf("generation: %d", generation);
-			// int itP;
-			// printf("Printing xtests (design variables)");
-			// for(itP=0 ;itP<25 ;itP++){
-			// 	printf("x[%d] = %f\n", itP, xTEST[itP]);
-			// }
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// exit(5);
-			// if(generation > 230){
-			
-			// 	printf("generation: %d", generation);
-			
-			// 	int itP;
-			// 	printf("Printing xtests (design variables)");
-			// 	for(itP=0 ;itP<25 ;itP++){
-			// 		printf("x[%d] = %f ", itP, xTEST[itP]);
-			// 	}
-			// 	printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			// 	exit(5);
-			// }
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
 		#endif
 
 
 		#ifdef USE_T72C
+
 			length[0] = 60.000000;
 			length[1] = 60.000000;
 			length[2] = 60.000000;
@@ -3912,29 +3465,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 				function += x[j] * length[j];
 			}
 			function /= 10;
-
-			xTEST[0] = x[3];
-			xTEST[1] = x[11];
-			xTEST[2] = x[15];
-			xTEST[3] = x[17];
-			xTEST[4] = x[21];
-			xTEST[5] = x[29];
-			xTEST[6] = x[33];
-			xTEST[7] = x[35];
-			xTEST[8] = x[39];
-			xTEST[9] = x[47];
-			xTEST[10] = x[51];
-			xTEST[11] = x[53];
-			xTEST[12] = x[57];
-			xTEST[13] = x[65];
-			xTEST[14] = x[69];
-			xTEST[15] = x[71];
-
-			// MODIFICADO POR PEDRO
-			// Evaluate using Eureka
-			truss->evaluation(xTEST, valuesArray[i]);
-			// printf("function (objFunc) Erica: %f\t function (objFunc) Eureka: %f\n", function, valuesArray[i][0]);			// function = valuesArray[0]; // Function gets the objective function value
-			function = valuesArray[i][0]; // Avaliação do Eureka ao invés da Erica
 		#endif
 
 
@@ -4929,19 +4459,12 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			printf("x[%d] = %lf\t", j, x[j]);
 		printf("function = %lf\n", function);*/
 
-		// printf("chegou");
 		swarm->particles[i].fitness = function;
 		functionAvg += function;
 	}
 	functionAvg /= MAX_PAR;
 
-
-	// CHANGE VARIANTS
-	// printf("pré apm (dentro de fitness)\n");
-	APM (swarm, functionAvg, k, violationAcum, valuesArray);
-	// med_3_APM (swarm, functionAvg, k, violationAcum, valuesArray);
-	// printf("pos APM!");
-	// exit(1);
+	APM (swarm, functionAvg, k, violationAcum);
 	//sporadic_APM (swarm, functionAvg, k, violationAcum, generation);
 	//sporadic_acumulation_APM (swarm, functionAvg, k, violationAcum, generation);
 	//monotonic_APM (swarm, functionAvg, k_aux, violationAcum);
@@ -4952,6 +4475,7 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 	//worst_3_APM (swarm, functionAvg, k, violationAcum); // Mesmo problema do 'worst_2_APM'
 	//med_APM (swarm, functionAvg, k, violationAcum);
 	//med_2_APM (swarm, functionAvg, k, violationAcum);
+	// med_3_APM (swarm, functionAvg, k, violationAcum);
 	//med_4_APM (swarm, functionAvg, k, violationAcum);
 	//med_5_APM (swarm, functionAvg, k, violationAcum);swarm->particles[i].position
 	//med_6_APM (swarm, functionAvg, k, violationAcum);
@@ -5107,50 +4631,16 @@ void deallocate (swarm_t * swarm) {
 	free (swarm);
 }
 
-void deallocateBest (best_particle_t * best) {
-	int i;
-
-	free(best->v);
-	free(best->position);
-	free(best);
-	// free(best->v);
-
-	
-}
-
 int main () {
-	// srand(time(NULL));
-	srand(12);	
-	// printf("truss.getDimensio(): %d\n", trussTestObj.getDimension());
-	// int arr [5] ={1,2,3,4,5};
-	
-	// printf("antes de declarar truss");
-	F101Truss10Bar *truss= new F101Truss10Bar();
-	// F103Truss25Bar *truss= new F103Truss25Bar();
-	// F105Truss60Bar *truss= new F105Truss60Bar();
-	// F105Truss60Bar *truss= new F107Truss72Bar();
-	// printf("truss.getDimensio(): %d\n", trussTestObj1->getDimension());
-	
-	printf("dimension: %d\n", truss->getDimension());
-	printf("constraints: %d\n", truss->getNumberConstraints());
-	// exit(3);
-
-	
+	srand(time(NULL));
+	//srand(12);
 
 
-	// // Bloco abaixo funciona
-	// testNamespace::testClass testClassObj;
-	// printf("bar: %d", testClassObj.bar(10));
-
-	
-
-
-	// // Bloco abaixo funciona
-	// printf("foo: %d", foo(10));
+	// F101Truss10Bar()
 	// return 0;
 
 	int i, j, m, run, index, total = 0;
-	double lowerBound[N_VAR], upperBound[N_VAR], vectorAux[MAX_RUN], alfa, ** violationAcum, * k, feasibleAverage , feasibleBest, feasibleWorst, feasibleMedian, feasiblePosition[N_VAR], bestFeasiblePosition[N_VAR], dp;
+	double lowerBound[N_VAR], upperBound[N_VAR], vectorAux[MAX_RUN], alfa, ** violationAcum, * k, feasibleAverage , feasibleBest, feasibleWorst, feasibleMedian, feasiblePosition[N_VAR], dp;
 	FILE * output = fopen ("outs/t10c_apm.txt", "a+");
 	if (output == NULL) {
 		printf("\nError..\n");
@@ -5188,20 +4678,16 @@ int main () {
 	feasibleWorst = -INIT;
 
 	for (run = 0; run < MAX_RUN; run++) {	
+
 		index = -1;
 		swarm_t * swarm = allocate(); // Allocates the swarm.	
-
 		// best
 		best_particle_t * best;
-
-		// printf("\n onde voce para\n");
-		best = (best_particle_t * ) malloc(sizeof(best_particle_t));
-
-		best->v = (float *) malloc(N_CON * sizeof(float));
-		best->position = (double *) malloc(N_VAR * sizeof(double));
+		best = malloc(sizeof(best_particle_t));
+		best->v = malloc(N_CON * sizeof(float));
+		best->position = malloc(N_VAR * sizeof(double));
 		best->fitness = INIT;
 		best->fitnessAPM = INIT;
-
 		for (m = 0; m < N_CON; m++)
 			best->v[m] = INIT;
 		for (m = 0; m < N_VAR; m++)
@@ -5220,24 +4706,16 @@ int main () {
 		for(i = 0; i < N_CON; i++)
 			k[i] = 0.;
 
-		
 		boundary(lowerBound, upperBound); // Boundary condition
-		// printf("\n voltou aqui (pos boundary)\n");
 		initialize(swarm, lowerBound, upperBound); // Initialize the particles
-		// printf("\n vvoltou aqui (pos initialize)\n");
+		fitness(swarm, k, violationAcum, MAX_TIME / 10); // Fitness function	
 
-		fitness(swarm, k, violationAcum, MAX_TIME / 10, truss); // Fitness function	
-		// printf("\n vvoltou aqui, pos fitness\n");
-
-		// printf("saiu");
-		// return 0;
-		
 		for (i = 0; i < MAX_TIME; i++) {
 			alfa = (0.9 - 0.4) * ((float) (MAX_TIME - i) / MAX_TIME) + 0.4;
 
 			calc_best(swarm); // Calculate pBest and gBest
 			update(swarm, lowerBound, upperBound, alfa); // Update velocity and position
-			fitness(swarm, k, violationAcum, i, truss); // Fitness function
+			fitness(swarm, k, violationAcum, i); // Fitness function
 
 			// best	
 			for (m = 0; m < N_CON; m++) {
@@ -5266,10 +4744,8 @@ int main () {
 
 		printf("\n\n");
 		printf("BEST %d - run #%d\n", index, run);
-		for (j = 0; j < N_VAR; j++){
+		for (j = 0; j < N_VAR; j++)	
 			printf("x[%d] = %.12lf\t\t", j, best->position[j]);
-			// bestFeasiblePosition[j] = best->position[j];
-		}	
 		printf("\nBest = %.12lf ", best->fitness);
 		printf("BestAPM = %.12lf ", best->fitnessAPM);
 		
@@ -5319,22 +4795,18 @@ int main () {
 				fprintf (outputIndependentExecs, "T72C\n%lf ", best->fitness);
 			#endif
 		} else if (run == MAX_RUN -1){ // Última iteração
-			fprintf (outputIndependentExecs, "%lf\tnRun: #%d\n", best->fitness, MAX_TIME * MAX_PAR);
+			fprintf (outputIndependentExecs, "%lf\n", best->fitness);
 		}
 		else { // Demais iterações
 			fprintf (outputIndependentExecs, "%lf ", best->fitness);
 		}
 
-
 		vectorAux[run] = best->fitnessAPM;
 		if (best->fitnessAPM != INIT) {
 			total++;
 			feasibleAverage += best->fitnessAPM;
-			if (best->fitnessAPM < feasibleBest){
+			if (best->fitnessAPM < feasibleBest)
 				feasibleBest = best->fitnessAPM;
-				for (j = 0; j < N_VAR; j++)
-					bestFeasiblePosition[j] = best->position[j];
-			}
 			if (best->fitnessAPM > feasibleWorst)
 				feasibleWorst = best->fitnessAPM;
 			for (j = 0; j < N_VAR; j++)
@@ -5345,24 +4817,15 @@ int main () {
 			printf("v = %e ", best->v[j]);
 
 		printf("\n");
-		// printf("\nchegou aqui\n");
-	
 
 		//Deallocate
 		for (i = 0; i < MAX_PAR; i++)	
 			free (violationAcum[i]);
-		
 		free (violationAcum);
 		free (k);
-		// printf("\nchegou final do foraqui\n");
-		// free (best);
-		deallocate(swarm);
-		// deallocateBest(best);
-		// printf("\nchegou final do for aqui de verdade\n");
-	}
 
-	// Deallocate truss
-	delete truss;
+		deallocate(swarm);
+	}
 
 	// Calculate of the dp (desvio padrão)
 	int cont, cont2 = 0;
@@ -5418,10 +4881,9 @@ int main () {
 			fprintf (output, "STRING\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "STRING\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "STRING\t%lf \n", feasibleBest);
-			fprintf (outputAll, "STRING\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "STRING\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nSTRING\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5429,10 +4891,9 @@ int main () {
 			fprintf (output, "REDUCER\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "REDUCER\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "REDUCER\t%lf \n", feasibleBest);
-			fprintf (outputAll, "REDUCER\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "REDUCER\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nREDUCER\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5440,10 +4901,9 @@ int main () {
 			fprintf (output, "WELDED\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "WELDED\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "WELDED\t%lf \n", feasibleBest);
-			fprintf (outputAll, "WELDED\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "WELDED\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nWELDED\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5451,10 +4911,9 @@ int main () {
 			fprintf (output, "PRESSURE\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "PRESSURE\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "PRESSURE\t%lf \n", feasibleBest);
-			fprintf (outputAll, "PRESSURE\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "PRESSURE\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nPRESSURE\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5462,10 +4921,9 @@ int main () {
 			fprintf (output, "CANTILEVER\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "CANTILEVER\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "CANTILEVER\t%lf \n", feasibleBest);
-			fprintf (outputAll, "CANTILEVER\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "CANTILEVER\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nCANTILEVER\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5473,10 +4931,9 @@ int main () {
 			fprintf (output, "T10C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T10C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T10C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T10C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T10C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT10C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5484,10 +4941,9 @@ int main () {
 			fprintf (output, "T10D\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T10D\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T10D\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T10D\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T10D\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT10D\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5495,10 +4951,9 @@ int main () {
 			fprintf (output, "T25C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T25C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T25C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T25C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T25C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT25C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5506,10 +4961,9 @@ int main () {
 			fprintf (output, "T25D\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T25D\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T25D\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T25D\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T25D\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT25D\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5517,10 +4971,9 @@ int main () {
 			fprintf (output, "T52C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T52C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T52C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T52C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T52C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT52C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5528,10 +4981,9 @@ int main () {
 			fprintf (output, "T52D\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T52D\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T52D\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T52D\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T52D\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT52D\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5539,10 +4991,9 @@ int main () {
 			fprintf (output, "T60C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T60C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T60C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T60C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T60C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT60C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5550,10 +5001,9 @@ int main () {
 			fprintf (output, "T72C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T72C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T72C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T72C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T72C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT72C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
@@ -5561,10 +5011,9 @@ int main () {
 			fprintf (output, "T942C\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			fprintf (outputPP, "T942C\t%lf \n", feasibleAverage / total);
 			fprintf (outputPP2, "T942C\t%lf \n", feasibleBest);
-			fprintf (outputAll, "T942C\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputAll, "T942C\t %lf \t %lf \t %lf \t %lf \t %e \t", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 			for (j = 0; j < N_VAR; j++)
-				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
-			fprintf(outputAll, " endProjectVariables(best individual)\t");
+				fprintf (outputAll, "%lf \t", feasiblePosition[j]);
 			printf("\nT942C\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 	}

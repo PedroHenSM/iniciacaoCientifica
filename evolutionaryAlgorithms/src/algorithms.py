@@ -166,6 +166,12 @@ class Population(object):
           n.append(np.random.uniform(-100, 100))
         else:
           sys.exit("Function not defined.")
+      # 60 bar truss, best solution from Erica
+      # n = [1.16186, 2.05396, 0.55622, 1.56836, 1.42066, 0.56823, 1.92526, 1.90424, 1.11336, 1.49336, 1.49575, 0.80284, 2.06031, 1.30629, 1.00834, 0.54040, 0.50147, 0.94529, 1.14428, 1.19860, 1.15119, 1.08666, 0.50457, 1.02406, 1.26823]
+      # 60 bar truss, best solution from Silva
+      # n = [1.1628, 2.0741, 0.5000, 1.7550, 1.6937, 0.5831, 1.9866, 1.8817, 1.0210, 1.8557, 1.7946, 0.5001, 2.0715, 1.2532, 1.0677, 0.7102, 0.7795, 1.0434, 1.1508, 1.1600, 0.9856, 1.0803, 0.6282, 1.0245, 1.2642]
+      # 60 bar truss, best solution from Bernardino
+      # n = [1.1726, 2.0621, 0.5100, 1.7654, 1.6658, 0.5720, 1.9062, 1.9484, 1.0510, 1.7466, 1.6457, 0.5153, 2.0797, 1.2616, 1.1398, 0.6888, 0.7888, 1.0401, 1.1605, 1.1499, 1.0097, 1.0680, 0.8199, 1.0693, 1.2743]
       self.individuals.append(Individual(n, objFunc, g, h, violations, violationSum))
 
   def printPopulation(self, boolObjFunc, constraintHandling, boolN):
@@ -196,6 +202,20 @@ class Population(object):
         valuesArraySize = truss.getNumberObjectives() + truss.getNumberConstraints() # the size will be objFunction (1) + gSize
         xArray = utils.new_doubleArray(truss.getDimension()) # creates an array
         valuesArray = utils.new_doubleArray(valuesArraySize) # the size will be objFunct(1) + gSize
+        # print("valuesArraySize: {}".format(valuesArraySize))
+        # print("xArraySize: {}".format(truss.getDimension()))
+        # sys.exit('ok');
+        # # TEST
+        # nErica = [1.16186, 2.05396, 0.55622, 1.56836, 1.42066, 0.56823, 1.92526, 1.90424, 1.11336, 1.49336, 1.49575, 0.80284, 2.06031, 1.30629, 1.00834, 0.54040, 0.50147, 0.94529, 1.14428, 1.19860, 1.15119, 1.08666, 0.50457, 1.02406, 1.26823]
+        # USE_T25D
+        # nErica = [10.904000, 16.802600, 15.436700, 5.304100, 4.921300, 13.856200, 16.115300, 7.447200]
+        # nErica = [0.1, 0.3, 3.4, 0.1, 2.1, 1.0, 0.5, 3.4 ]
+        # USE_T10C
+        # nErica = [12.658400, 19.451960, 17.878820, 6.208860, 5.767980, 16.058520, 18.660380, 8.677120, 8.473380, 10.410580]
+        # USE_T60C
+        # nErica = [2.192000, 3.107300, 2.895350, 1.323050, 1.263650, 2.650100, 3.000650, 1.655600, 1.628150, 1.889150, 2.327900, 3.731000, 4.477100, 1.138550, 4.968500, 4.868600, 2.436350, 3.672500, 2.619500, 0.883400, 2.613200, 0.783050, 4.551800, 4.419050, 0.888800 ]
+        # populateArray(xArray, nErica, 0, truss.getDimension(), case, discreteSet)
+        # #  END TEST
         # Transfers values from a python list to a C++ array
         populateArray(xArray, individual.n, 0, truss.getDimension(), case, discreteSet)
         valuesList = individual.objectiveFunction + individual.g
@@ -206,6 +226,10 @@ class Population(object):
         # populateList(individual.n, xArray, 0, truss.getDimension()) #TODO Verificar se pode ficar comentado
         individual.objectiveFunction[0] = utils.doubleArray_getitem(valuesArray, 0)
         populateList(individual.g, valuesArray, 1, valuesArraySize)
+        # print("obj func: {}".format(utils.doubleArray_getitem(valuesArray, 0)))
+        # for i in range(truss.getNumberConstraints()):
+        #   print("{} ".format(individual.g[i]))
+        # sys.exit("saindo no evaluate")
         # Cleans mess
         utils.delete_doubleArray(xArray)
         utils.delete_doubleArray(valuesArray)

@@ -44,7 +44,7 @@ def menu():
   parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
   parser.add_argument("--maxFe", "-m", type=int, default=15000, help="The max number of functions evaluations")
   parser.add_argument("--case", "-c", type=str, default="continuous", help="Discrete or continuous design variables")
-  parser.add_argument("--weights", "-w", type=str, default="Linear", help="Change weights parameter. Decrease speed, can be 'Superlinear', 'Linear' or 'Equal'")
+  parser.add_argument("--weights", "-w", type=str, default="Superlinear", help="Change weights parameter. Decrease speed, can be 'Superlinear', 'Linear' or 'Equal'")
   # parser.add_argument("--windowSize", "-w", type=int, default=5, help="Size of the window for updating gaussian model")
   # parser.add_argument("--crossoverProb", "-c", type=int, default=100, help="The crossover probability [0,100]")
   # parser.add_argument("--esType", "-e", type=int, default=0, help="The type of ES. 0 for ES(µ + λ) or 1 for ES(µ , λ)")
