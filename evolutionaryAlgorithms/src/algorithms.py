@@ -111,6 +111,23 @@ class Population(object):
               n.append(np.random.uniform(5, 5.5))
             else:
               sys.exit("Design variable should not exist.")
+          elif function == 222: # The Speed Reducer design (ObjFunc 2994)
+            if i == 0:
+              n.append(np.random.uniform(2.6, 3.6))
+            elif i == 1:
+              n.append(np.random.uniform(0.7, 0.8))
+            elif i == 2:
+              n.append(np.round(np.random.uniform(17, 28)))
+            elif i == 3:
+              n.append(np.random.uniform(7.3, 8.3))
+            elif i == 4:
+              n.append(np.random.uniform(7.3, 8.3))
+            elif i == 5:
+              n.append(np.random.uniform(2.9, 3.9))
+            elif i == 6:
+              n.append(np.random.uniform(5, 5.5))
+            else:
+              sys.exit("Design variable should not exist.")
           elif function == 23: # The Welded Beam design
             if i == 0:
               n.append(np.random.uniform(0.125, 10))
@@ -120,6 +137,17 @@ class Population(object):
               n.append(np.random.uniform(0.1, 10))
             elif i == 3:
               n.append(np.random.uniform(0.1, 10))
+            else:
+              sys.exit("Design variable should not exist.")
+          elif function == 233: # The Welded Beam design (ObjFunc 1.7)
+            if i == 0:
+              n.append(np.random.uniform(0.1, 2))
+            elif i == 1:
+              n.append(np.random.uniform(0.1, 10))
+            elif i == 2:
+              n.append(np.random.uniform(0.1, 10))
+            elif i == 3:
+              n.append(np.random.uniform(0.1, 2))
             else:
               sys.exit("Design variable should not exist.")
           elif function == 24: # The Pressure Vessel design
@@ -223,7 +251,7 @@ class Population(object):
         # Evaluate population
         truss.evaluation(xArray, valuesArray)
         # Transfers values from a C++ array to a python list
-        # populateList(individual.n, xArray, 0, truss.getDimension()) #TODO Verificar se pode ficar comentado
+        # populateList(individual.n, xArray, 0, truss.getDimension()) # Verificar se pode ficar comentado
         individual.objectiveFunction[0] = utils.doubleArray_getitem(valuesArray, 0)
         populateList(individual.g, valuesArray, 1, valuesArraySize)
         # print("obj func: {}".format(utils.doubleArray_getitem(valuesArray, 0)))
@@ -315,9 +343,15 @@ class Population(object):
       elif function == 22: # The Speed Reducer design
         nMinList = [2.6, 0.7, 17, 7.3, 7.8, 2.9, 5]
         nMaxList = [3.6, 0.8, 28, 8.3, 8.3, 3.9, 5.5]
+      elif function == 222: # The Speed Reducer design (ObjFunc 2994)
+        nMinList = [2.6, 0.7, 17, 7.3, 7.3, 2.9, 5]
+        nMaxList = [3.6, 0.8, 28, 8.3, 8.3, 3.9, 5.5]
       elif function == 23: # The Welded Beam design
         nMinList = [0.125, 0.1, 0.1, 0.1]
         nMaxList = [10, 10, 10, 10]
+      elif function == 233: # The Welded Beam design (ObjFunc 1.7)
+        nMinList = [0.1, 0.1, 0.1, 0.1]
+        nMaxList = [2, 10, 10, 2]
       elif function == 24: # The Pressure Vessel design
         nMinList = [0.0625, 0.0625, 10, 10]
         nMaxList = [5, 5, 200, 200]
@@ -560,7 +594,7 @@ class Population(object):
     self.uniteConstraints(constraintHandling)
     avgObjFunc = self.calculatePenaltyCoefficients(constraintsSize, penaltyCoefficients, avgObjFunc)
     self.calculateAllFitness(constraintsSize, penaltyCoefficients, avgObjFunc)
-    # TODO Verificar se é necessário recalcular o fitness dos pais após avgObjFunc modificar (creio que seja)
+    
     if population is not None:
       population.calculateAllFitness(constraintsSize, penaltyCoefficients, avgObjFunc)
     return avgObjFunc
@@ -838,21 +872,36 @@ def printInitialPopulationInfo(algorithm, constraintHandling, function, seed, pa
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("ngen ObjectiveFunction {} ProjectVariables".format(feasibiliyMeasure))
 
-def printFinalPopulationInfo(status, population, lastFactible, hof, constraintHandling, bestFromLastPopulation):
+def printFinalPopulationInfo(status, population, lastFactible, hof, constraintHandling, vtr, maxFe, bestFromLastPopulation):
   print("*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*")
   print("Status: {}".format(status))
+  
+  print("Value to reach")
+  if vtr['individual'] is not None:
+    print(vtr['feval'], end=' ')
+    vtr['individual'].printIndividual(True, constraintHandling, True)
+  else: # Imprime o melhor obtido
+    print(maxFe, end=' ')
+    hof.printIndividual(True, constraintHandling, True)
+
   print("Last individual")
   if bestFromLastPopulation is not None:
-    bestFromLastPopulation.printIndividual(True, constraintsInitParams, True)
+    print(maxFe, end=' ')
+    bestFromLastPopulation.printIndividual(True, constraintHandling, True)
   else:
+    print(maxFe, end=' ')
     population.printBest(True, constraintHandling, True)
+
   print("Hall of fame")
   if hof is not None:
+    print(maxFe, end=' ')
     hof.printIndividual(True, constraintHandling, True)
   else:
     print("")
+
   print("Last factible individual")
   if lastFactible is not None:
+    print(maxFe, end=' ')
     lastFactible.printIndividual(True, constraintHandling, True)
   else:
     print("")
@@ -938,18 +987,23 @@ def initializeConstraints(function):
     if function == 21: # The tension/compression spring design
       nSize = 3
       g, h, constraintsSize = 4, 0, 4
-    elif function == 22: # The speed reducer design
+    elif function == 22 or function == 222: # The speed reducer design
       nSize = 7
       g, h, constraintsSize = 11, 0, 11
     elif function == 23: # The welded beam design
       nSize = 4
       g, h, constraintsSize = 5, 0, 5
+    elif function == 233: # The welded beam design (Model with 7 constraints and the best objective function value is around 1.7)
+      nSize = 4
+      g, h, constraintsSize = 7, 0, 7
     elif function == 24: # The pressure vessel design
       nSize = 4
       g, h, constraintsSize = 4, 0, 4
     elif function == 25: # The cantilever beam design
       nSize = 10
       g, h, constraintsSize = 11, 0, 11
+    else:
+      sys.exit("Function not defined (Initialize Constraints).")
   else:
     sys.exit("Constraints not defined for function.")
   return g, h, constraintsSize, truss, lowerBound, upperBound, nSize # FIXME Verify is none can be returned on trurss, lb and upb
@@ -1081,6 +1135,30 @@ def defineMaxEval(function, nSize):
 
   return maxFe
 
+# Value to Reach
+def valueToReach(function):
+  fOptima = None
+  if function == 21: # Tension compression spring
+    # fOptima = 0.012665 + 1e-8
+    # Mezura Montes[07] F_OBJ = 0.01266524482411833 | Project Variables = [11.290483, 0.356692, 0.051688] FOPTIMA
+    fOptima = 0.01266524482411833 + 1e-8 # OK
+  elif function == 222: # speedReducer
+    # fOptima = 2994.471066 + 1e-7
+    # Zhang [08] F_OBJ = 2994.471066160767 | Project Variables = [3.5000000000, 0.7000000000, 17, 7.3000000000, 7.7153199115, 3.3502146661, 5.2866544650] # Zhang [08] FOPTIMA
+    fOptima = 2994.471066160767 + 1e-8 # OK
+  # elif function == 23: # Welded 
+  elif function == 233: # Welded Beam Mod(1.7objFunc)
+    # fOptima = 1.724852 + 1e-8
+    # Wang [10] F_OBJ = 1.7248523110932348 | Project Variables = [0.20572964, 3.47048867, 9.03662391, 0.20572964] FOPTIMA
+    fOptima = 1.7248523110932348 + 1e-8 # OK
+  elif function == 24: # PressureVesel
+    # fOptima = 6059.701660
+    fOptima = 6059.701660 + 1e-6 # OK
+  else:
+    sys.exit("Function not defined (Value To Reach Function).")
+  # elif function == 25: # CantileverBeam
+
+  return fOptima
 # Generate random indexes that won't repeat on a generation of new offsprings
 def populationPick(parentIdx, parentsSize):
   chosenOnes = []
@@ -1156,7 +1234,7 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
   status = "Finished"
   printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, None)
 
-# CMA ES TODO Not working for problem 22 (not converging)
+
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval, rweights):
   np.random.seed(seed)
   strFunction = str(function)
@@ -1164,7 +1242,12 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   lastFactible = None
   discreteSet = None
   generation = 0
+  vtr = {
+    'individual': None,
+    'feval': None
+  }
   status="Initializing"
+
 
   
   restartCriterias = {
@@ -1234,6 +1317,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   # Generate initial population
   parents = Population(nSize, parentsSize, function, 1, lowerBound, upperBound, gSize, hSize)
 
+  # valueReached = None
 
   # CMAESrweights=equal+DEB: T10: 5061.970157299801 | T25: 484.05229151214365 | T60: 311.6048214519769 | T72: 380.0802294286406  
   # CMAES+APM: T10: 5062 | T25: 484 | T60: 313 | T72: 380
@@ -1249,6 +1333,19 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     status = "Executing"
     if parents.individuals[0].fitness is not None:
       bestFromLastPopulation = parents.bestIndividual(constraintHandling)
+      if not isInfactible(bestFromLastPopulation, constraintHandling) and bestFromLastPopulation.objectiveFunction[0] - valueToReach(function) <= 0:
+      # if not isInfactible(bestFromLastPopulation, constraintHandling) and np.round(bestFromLastPopulation.objectiveFunction[0], 6) - valueToReach(function) <= 0:
+      # if not isInfactible(bestFromLastPopulation, constraintHandling):
+      #   if function === 21:
+      #   if bestFromLastPopulation.objectiveFunction[0] <= valueToReach(function):
+
+        if vtr['individual'] is None:
+          vtr['individual'] = bestFromLastPopulation
+          vtr['feval'] = feval
+          # print('Value Reached: {}'.format(feval))
+          print('VTR: '.format(vtr))
+          # sys.exit("okoko")
+          # break
     # Generate new population
     parents.cmaGeneratePopulation(parentsSize, centroid, sigma, BD)
 
@@ -1312,6 +1409,6 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
   status = "Finished"
   # Prints final info
-  printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, None)
+  printFinalPopulationInfo(status, parents, lastFactible, hof, constraintHandling, vtr, maxFe, None)
   # print("CPU time used (seconds)")
   # print("666")

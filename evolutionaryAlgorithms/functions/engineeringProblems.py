@@ -57,6 +57,55 @@ def weldedBeam(x, objFunc, g, h): # The welded beam design | 320k maxEval
 
   return objectiveFunction, g, h
 
+def weldedBeamModObjFun1_7(x, objFunc, g, h): # The welded beam design | 320k maxEval
+  '''
+    P = 6000
+    L = 14
+    E = 30 * 10⁶
+    G = 12 * 10⁶
+    tau_max = 13600
+    sigma_max = 30000
+    delta_max = 0.25
+  '''
+
+
+  # h -> x[0] | l -> x[1] | t -> x[2] | b -> x[3]
+
+  # Constants
+  p = 6000
+  l = 14
+  e = 30 * (np.power(10, 6))
+  G = 12 * (np.power(10, 6))
+  tauMax = 13600
+  sigmaMax = 30000
+  deltaMax = 0.25
+
+  # Defs
+
+  m = p * (l + (x[1] / 2))
+  r = np.sqrt( (np.power(x[1], 2) / 4) + np.power(((x[0] + x[2]) / 2), 2) )
+  j = 2 * ( np.sqrt(2) * x[0] * x[1] * ((np.power(x[1], 2) / 12) + np.power( (x[0] + x[2] / 2), 2)) )
+
+  tauLinha = p / (np.sqrt(2) * x[0] * x[1])
+  tauDuasLinhas = (m * r) / j
+  sigmaX = (6 * p * l) / ( x[3] * np.power(x[2], 2))
+  deltaX = (4 * p * np.power(l, 3)) / (e * np.power(x[2], 3) * x[3])
+  pcX = ((4.013 * e * np.sqrt((np.power(x[2], 2) * np.power(x[3], 6)) / 36 )) / np.power(l,2)) * (1 - (x[2] / (2 * l)) * np.sqrt(e / (4*G)))
+  tauX = np.sqrt( np.power(tauLinha, 2) + 2 * tauLinha * tauDuasLinhas * (x[1] / (2*r)) + np.power(tauDuasLinhas, 2))
+
+  
+  objectiveFunction = 1.10471 * np.power(x[0], 2) * x[1] + 0.04811 * x[2] * x[3] * (14.0 + x[1])
+
+  g[0] = tauX - tauMax # <= 0
+  g[1] = sigmaX - sigmaMax # <= 0
+  g[2] = x[0] - x[3] # <= 0
+  g[3] = 0.10471 * np.power(x[0], 2) + 0.04811 * x[2] * x[3] * (14.0 + x[1]) - 5 # <= 0
+  g[4] = 0.125 - x[0] # <= 0
+  g[5] = deltaX - deltaMax # <= 0
+  g[6] = p - pcX # <= 0
+
+  return objectiveFunction, g, h
+
 def pressureVesel(x, objFunc, g, h): # The pressure vessel design | 80k maxEval
   # Ts -> x[0] | Th -> x[1] | R -> x[2] | L -> x[3]
   # x = [0.8125, 0.4375, 42.0973, 176.6509]
@@ -80,6 +129,7 @@ def pressureVesel(x, objFunc, g, h): # The pressure vessel design | 80k maxEval
   g[3] = - (-x[3] + 240) # >= 0
 
   return objectiveFunction, g, h
+
 def cantileverBeam(x, objFunc, g, h): # The cantilever beam design | 35k maxEval
   # Bi -> x[0] | Hi -> x[1]
   # x = [3, 60, 3.1, 55, 2.6, 50, 2.2837, 45.5507, 1.7532, 35.0631] # Best solution Bernardino 08
@@ -135,10 +185,12 @@ def cantileverBeam(x, objFunc, g, h): # The cantilever beam design | 35k maxEval
 def executeFunction(function, x, objFunc, g, h):
   if function == 21:
     objFunc, g, h = tensionCompressionSpring(x, objFunc, g, h) # 36k maxEval
-  elif function == 22:
+  elif function == 22 or function == 222:
     objFunc, g, h = speedReducer(x, objFunc, g, h) # 36k maxEval
   elif function == 23:
     objFunc, g, h = weldedBeam(x, objFunc, g, h) # 320k maxEval
+  elif function == 233:
+    objFunc, g, h = weldedBeamModObjFun1_7(x, objFunc, g, h) # 320k maxEval
   elif function == 24:
     objFunc, g, h = pressureVesel(x, objFunc, g, h) # 80k maxEval
   elif function == 25:
@@ -153,9 +205,24 @@ def executeFunction(function, x, objFunc, g, h):
 
 
 
+#  Comparações com paper DeMelo
+
+# Welded beam 20k
+# Speed Reducer 30k
+# Three bar truss 10k
+# Pressure vessel 30k
+# Tension/compression spring 20k
+
+# Function 21 => Tension compression spring | 20k
+# Function 222 => Speed reducer | 30k
+# Function 233 => Welded beam | 20k
+# Function 24 => Pressure vessel | 30k
+# Function 25 => Cantilever beam
 
 
-
+# Shen, Zhu, Niu & Wu 2009
+# Ray & Liew 2003
+# Coelho 2010
 
 
 
