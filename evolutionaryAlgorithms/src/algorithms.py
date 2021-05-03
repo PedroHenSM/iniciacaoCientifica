@@ -31,6 +31,9 @@ APM = "APM"
 TOLFUN = 10**-6
 TOLX = 10**-12
 
+# DeMelo restart criterias
+MAXIMUM_SIGMA = 3
+
 AlGORITHM_PARAMS = {
   "function": None,
   "parentsSize": None,
@@ -842,6 +845,36 @@ class Population(object):
       print("Restart causes: {}".format(restartCauses))
 
 
+  def restartCriteriasDeMelo(self, constraintHandling, restartCriterias, infeasibleTrials, sigma, maxFe, C):
+    # restartAlgorithm = False
+    # Check conditions: Maximum infeasible iterations 
+    # Stop if the number of consecutive iterations where the best solution is unfeasible reaches a given limit
+    if infeasibleTrials > int(0.25 * maxFe):
+      restartCriterias['infeasibleMaxTrials'] = True
+
+    # Check conditions: Maximum sigma
+    if sigma > MAXIMUM_SIGMA:
+      print('sigma: ', sigma)
+      restartCriterias['maximumSigma'] = True
+
+    # Check conditions: C is numerically not symmetrical and positive definite
+    # TODO Verify this criteria and implement it
+    # if todo:
+    #   restartCriterias['matrixNotSymmetrical'] = True
+
+    # Check conditions: Eigen(c) < 0
+
+    if np.any(np.linalg.eigvals(C) < 0):
+      restartCriterias['negativeEigenval'] = True
+
+    # Should restar the search
+    if any(restartCriterias.values()):
+      self.cmaRestart = True
+      # Creates a list of restart causes
+      restartCauses = [k for k, v in restartCriterias.items() if v]
+      print("Restart causes: {}".format(restartCauses))
+
+
 
 # Print(population) is shown as string and not memory reference
   def __repr__(self):
@@ -1036,18 +1069,21 @@ def constraintsInitParams (function, constraintHandling):
 
   return gSize, hSize, constraintsSize, truss, lowerBound, upperBound, nSize, penaltyCoefficients, avgObjFunc
 
-def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights):
+def cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights, function):
   # User defined params
   if parentsSize is None:
-    parentsSize = int(4 + 3 * np.log(nSize)) # Population size (λ)
+    parentsSize = int(4 + np.floor(3 * np.log(nSize))) # Population size (λ)
   if centroid is None:
+    centroid = np.array(getRandomArrProblemBounds(function, nSize))
     # centroid = np.array([5.0]*nSize) # objective variables initial points
-    centroid = np.random.randn(nSize) # objective variables initial points | gaussian distribution between [0,1]
+    # centroid = np.random.uniform(0, 10, nSize) # objective variables initial points
+    # centroid = np.random.uniform()
+    # centroid = np.random.randn(nSize) # objective variables initial points | gaussian distribution between [0,1]
   if sigma is None:
     # sigma = 5.0 # coordinate wise standard deviation(step-size)
     sigma = 0.5 # coordinate wise standard deviation(step-size)
   if mu is None:
-    mu = int(parentsSize / 2) # number of parents selected (selected search points in the population) (µ)
+    mu = int(np.floor(parentsSize / 2)) # number of parents selected (selected search points in the population) (µ)
   if rweights is None:
     rweights = "Linear"
 
@@ -1135,6 +1171,125 @@ def defineMaxEval(function, nSize):
 
   return maxFe
 
+def getRandomArrProblemBounds(function, nSize):
+  strFunction = str(function)
+  n = []
+  for i in range(nSize):
+    if strFunction[0] == "1": # Truss problems
+      n.append(np.random.uniform(lowerBound, upperBound))
+    elif strFunction[0] == "2": # Mechanical Engineering Problems
+      if function == 21: # The Tension/Compression Spring Design
+        if i == 0:
+          n.append(np.random.uniform(2, 15))
+        elif i == 1:
+          n.append(np.random.uniform(0.25, 1.3))
+        elif i == 2:
+          n.append(np.random.uniform(0.05, 2))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 22: # The Speed Reducer design
+        if i == 0:
+          n.append(np.random.uniform(2.6, 3.6))
+        elif i == 1:
+          n.append(np.random.uniform(0.7, 0.8))
+        elif i == 2:
+          n.append(np.round(np.random.uniform(17, 28)))
+        elif i == 3:
+          n.append(np.random.uniform(7.3, 8.3))
+        elif i == 4:
+          n.append(np.random.uniform(7.8, 8.3))
+        elif i == 5:
+          n.append(np.random.uniform(2.9, 3.9))
+        elif i == 6:
+          n.append(np.random.uniform(5, 5.5))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 222: # The Speed Reducer design (ObjFunc 2994)
+        if i == 0:
+          n.append(np.random.uniform(2.6, 3.6))
+        elif i == 1:
+          n.append(np.random.uniform(0.7, 0.8))
+        elif i == 2:
+          n.append(np.round(np.random.uniform(17, 28)))
+        elif i == 3:
+          n.append(np.random.uniform(7.3, 8.3))
+        elif i == 4:
+          n.append(np.random.uniform(7.3, 8.3))
+        elif i == 5:
+          n.append(np.random.uniform(2.9, 3.9))
+        elif i == 6:
+          n.append(np.random.uniform(5, 5.5))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 23: # The Welded Beam design
+        if i == 0:
+          n.append(np.random.uniform(0.125, 10))
+        elif i == 1:
+          n.append(np.random.uniform(0.1, 10))
+        elif i == 2:
+          n.append(np.random.uniform(0.1, 10))
+        elif i == 3:
+          n.append(np.random.uniform(0.1, 10))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 233: # The Welded Beam design (ObjFunc 1.7)
+        if i == 0:
+          n.append(np.random.uniform(0.1, 2))
+        elif i == 1:
+          n.append(np.random.uniform(0.1, 10))
+        elif i == 2:
+          n.append(np.random.uniform(0.1, 10))
+        elif i == 3:
+          n.append(np.random.uniform(0.1, 2))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 24: # The Pressure Vessel design
+        if i == 0:
+          n.append(np.random.uniform(0.0625, 5))
+        elif i == 1:
+          n.append(np.random.uniform(0.0625, 5))
+        elif i == 2:
+          n.append(np.random.uniform(10, 200))
+        elif i == 3:
+          n.append(np.random.uniform(10, 200))
+        else:
+          sys.exit("Design variable should not exist.")
+      elif function == 25: # The Cantilever Beam design
+        # n[0] -> h1 | n[1] -> b1 | n[2] -> h2 | n[3] -> b2 (...)
+        if i == 0: # b1
+          n.append(np.round(np.random.uniform(1, 5)))
+        elif i == 1: # h1
+          n.append(np.round(np.random.uniform(30, 65)))
+        elif i == 2: # b2
+          n.append(np.random.uniform(2.4, 3.1))
+        elif i == 3: # h2
+          n.append(np.random.uniform(45, 60))
+        elif i == 4: # b3
+          n.append(np.random.uniform(2.4, 3.1))
+        elif i == 5: # h3
+          n.append(np.random.uniform(45, 60))
+        elif i == 6: # b4
+          n.append(np.random.uniform(1, 5))
+        elif i == 7: # h4
+          n.append(np.random.uniform(30, 65))
+        elif i == 8: # b5
+          n.append(np.random.uniform(1, 5))
+        elif i == 9: # h5
+          n.append(np.random.uniform(30, 65))
+        else:
+          sys.exit("Design variable should not exist.")
+        # elif i == 10:
+        #   sys.exit("Verify this last constraint. Not implemented.")
+      else:
+        sys.exit("Function not defined.")
+
+    elif strFunction[0] == "3": # cec 2020 bound constrained
+      n.append(np.random.uniform(-100, 100))
+    else:
+      sys.exit("Function not defined.")
+  return n
+
+
 # Value to Reach
 def valueToReach(function):
   fOptima = None
@@ -1171,7 +1326,7 @@ def populationPick(parentIdx, parentsSize):
 
 # Differential evolution
 def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval, rweights):
-  np.random.seed(seed)
+  # np.random.seed(seed)
   strFunction = str(function)
   feval = 0
   hof = None
@@ -1236,27 +1391,31 @@ def DE(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHand
 
 
 def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, feval, rweights):
-  np.random.seed(seed)
+  # np.random.seed(seed)
   strFunction = str(function)
   hof = None
   lastFactible = None
   discreteSet = None
   generation = 0
+  infeasibleTrials = 0
   vtr = {
     'individual': None,
     'feval': None
   }
   status="Initializing"
 
-
-  
   restartCriterias = {
     'tolFun': False,
     'tolX': False,
     'noEffectAxis': False,
     'noEffectCoord': False,
     'conditionCov': False,
+    'infeasibleMaxTrials': False,
+    'maximumSigma': False,
+    'matrixNotSymmetrical': False,
+    'negativeEigenval': False,
   }
+
   # if not any(conditions.values()): # Check if should restart
 
   # stop_causes = [k for k, v in conditions.items() if v]
@@ -1276,13 +1435,14 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
   # User defined params (if set to None, uses default)
   # # Search restarted, shouldn't use default population Size
-  # if feval != 0: 
-  #   parentsSize*=2
-  #   centroid = sigma = mu = None
-  # else:
-  #   parentsSize = centroid = sigma = mu = None
+  if feval != 0: 
+    parentsSize = int(1.5 * parentsSize)
+    centroid = mu = None
+    sigma = 0.1
+  else:
+    parentsSize = centroid = sigma = mu = None
   
-  parentsSize = centroid = sigma = mu = None
+  # parentsSize = centroid = sigma = mu = None
   # rweights = "equal"
   if case == "discrete":
     discreteSet = getDiscreteCaseList(function)
@@ -1293,7 +1453,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
   
   # Initialize all cmaes params
-  parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights)
+  parentsSize, mu, centroid, sigma, pc, ps, chiN, C, diagD, B, BD, update_count, weights, mueff, cc, cs, ccov1, ccovmu, damps = cmaInitParams(nSize, parentsSize, centroid, sigma, mu, rweights, function)
 
   # tolFunSize = 10 + int(numpy.ceil(30. * nSize / parentsSize)) # last 10 + ⌈30n/λ⌉
   
@@ -1311,7 +1471,7 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     "constraintHandling": constraintHandling,
     "case": case,
     "feval": feval,
-    "rweights": rweights,
+    "rweights": rweights
   }
 
   # Generate initial population
@@ -1333,12 +1493,15 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     status = "Executing"
     if parents.individuals[0].fitness is not None:
       bestFromLastPopulation = parents.bestIndividual(constraintHandling)
-      if not isInfactible(bestFromLastPopulation, constraintHandling) and bestFromLastPopulation.objectiveFunction[0] - valueToReach(function) <= 0:
-      # if not isInfactible(bestFromLastPopulation, constraintHandling) and np.round(bestFromLastPopulation.objectiveFunction[0], 6) - valueToReach(function) <= 0:
-      # if not isInfactible(bestFromLastPopulation, constraintHandling):
-      #   if function === 21:
-      #   if bestFromLastPopulation.objectiveFunction[0] <= valueToReach(function):
 
+      # Check if best individual from population is infeasible (restart criteria)
+      if isInfactible(bestFromLastPopulation, constraintHandling):
+        infeasibleTrials+=1
+      # Restart count of infeasible trials
+      else:
+        infeasibleTrials = 0
+
+      if not isInfactible(bestFromLastPopulation, constraintHandling) and bestFromLastPopulation.objectiveFunction[0] - valueToReach(function) <= 0:
         if vtr['individual'] is None:
           vtr['individual'] = bestFromLastPopulation
           vtr['feval'] = feval
@@ -1393,7 +1556,8 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
   
     # Check restart criterias
     # parents.restartCriterias(constraintHandling, restartCriterias, populationDeque, noEffectAxisIdx, centroid, sigma, cond, pc, B, diagD, C)
-
+    parents.restartCriteriasDeMelo(constraintHandling, restartCriterias, infeasibleTrials, sigma, maxFe, C)
+  # restartCriteriasDeMelo(self, constraintHandling, restartCriterias, infeasibleTrials, sigma, maxFe, C):
 
 
 

@@ -199,6 +199,8 @@ def executeFunction(function, x, objFunc, g, h):
     sys.exit("Function not defined.")
   return objFunc, g, h
 
+def tam(x):
+  return 4 + np.floor(3 * np.log(x))
 # if __name__ == '__main__':
 #   executeFunction()
 
