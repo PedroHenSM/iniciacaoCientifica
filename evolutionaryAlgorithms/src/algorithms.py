@@ -32,7 +32,7 @@ TOLFUN = 10**-6
 TOLX = 10**-12
 
 # DeMelo restart criterias
-MAXIMUM_SIGMA = 3
+MAXIMUM_SIGMA = 7
 
 AlGORITHM_PARAMS = {
   "function": None,
@@ -771,8 +771,8 @@ class Population(object):
         minCurrentGen = min(currentGen, key=lambda x: min(x.objectiveFunction))
         maxPopulationDeque = max(populationDeque, key=lambda x: min(x.objectiveFunction))
         minPopulationDeque = min(populationDeque, key=lambda x: min(x.objectiveFunction))
-        print("CurrentGen Range tolFun (AllFactible): {} - {} = {}".format(maxCurrentGen.objectiveFunction[0], minCurrentGen.objectiveFunction[0], maxCurrentGen.objectiveFunction[0] - minCurrentGen.objectiveFunction[0]))
-        print("PopulationDeque Range tolFun (AllFactible): {} - {} = {}".format(maxPopulationDeque.objectiveFunction[0], minPopulationDeque.objectiveFunction[0], maxPopulationDeque.objectiveFunction[0] - minPopulationDeque.objectiveFunction[0]))
+        # print("CurrentGen Range tolFun (AllFactible): {} - {} = {}".format(maxCurrentGen.objectiveFunction[0], minCurrentGen.objectiveFunction[0], maxCurrentGen.objectiveFunction[0] - minCurrentGen.objectiveFunction[0]))
+        # print("PopulationDeque Range tolFun (AllFactible): {} - {} = {}".format(maxPopulationDeque.objectiveFunction[0], minPopulationDeque.objectiveFunction[0], maxPopulationDeque.objectiveFunction[0] - minPopulationDeque.objectiveFunction[0]))
         # Returns true if range from all objective functions of current generation is below tolFun
         isCurrentRangeBelowTolFun = True if maxCurrentGen.objectiveFunction[0] - minCurrentGen.objectiveFunction[0] < TOLFUN else False
         # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
@@ -786,8 +786,8 @@ class Population(object):
           minCurrentGen = min(currentGen, key=lambda x: x.violationSum)
           maxPopulationDeque = max(populationDeque, key=lambda x: x.violationSum)
           minPopulationDeque = min(populationDeque, key=lambda x: x.violationSum)
-          print("CurrentGen Range tolFun DEB: {} - {} = {}".format(maxCurrentGen.violationSum, minCurrentGen.violationSum, maxCurrentGen.violationSum - minCurrentGen.violationSum))
-          print("PopulationDeque Range tolFun DEB: {} - {} = {}".format(maxPopulationDeque.violationSum, minPopulationDeque.violationSum, maxPopulationDeque.violationSum - minPopulationDeque.violationSum))
+          # print("CurrentGen Range tolFun DEB: {} - {} = {}".format(maxCurrentGen.violationSum, minCurrentGen.violationSum, maxCurrentGen.violationSum - minCurrentGen.violationSum))
+          # print("PopulationDeque Range tolFun DEB: {} - {} = {}".format(maxPopulationDeque.violationSum, minPopulationDeque.violationSum, maxPopulationDeque.violationSum - minPopulationDeque.violationSum))
           # Returns true if range from all objective functions of current generation is below tolFun`
           isCurrentRangeBelowTolFun = True if maxCurrentGen.violationSum - minCurrentGen.violationSum < TOLFUN else False
           # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
@@ -799,16 +799,16 @@ class Population(object):
           minCurrentGen = min(currentGen, key=lambda x: x.fitness)
           maxPopulationDeque = max(populationDeque, key=lambda x: x.fitness)
           minPopulationDeque = min(populationDeque, key=lambda x: x.fitness)
-          print("CurrentGen Range tolFun APM: {} - {} = {}".format(maxCurrentGen.fitness, minCurrentGen.fitness, maxCurrentGen.fitness - minCurrentGen.fitness))
-          print("PopulationDeque Range tolFun APM: {} - {} = {}".format(maxPopulationDeque.fitness, minPopulationDeque.fitness, maxPopulationDeque.fitness - minPopulationDeque.fitness))
+          # print("CurrentGen Range tolFun APM: {} - {} = {}".format(maxCurrentGen.fitness, minCurrentGen.fitness, maxCurrentGen.fitness - minCurrentGen.fitness))
+          # print("PopulationDeque Range tolFun APM: {} - {} = {}".format(maxPopulationDeque.fitness, minPopulationDeque.fitness, maxPopulationDeque.fitness - minPopulationDeque.fitness))
           # Returns true if range from all objective functions of current generation is below tolFun`
           isCurrentRangeBelowTolFun = True if maxCurrentGen.fitness - minCurrentGen.fitness < TOLFUN else False
           # Returns true if range from last 10 + ⌈30n/λ⌉ is below tolFun
           isRangeBelowTolFun = True if maxPopulationDeque.fitness - minPopulationDeque.fitness < TOLFUN else False
           # If both conditions are true, algorithm should be restarted
           restartCriterias['tolFun'] = True if isRangeBelowTolFun and isCurrentRangeBelowTolFun else False
-      else:
-        print("Population alternating between factibles and infactibles individuals!")
+      # else:
+        # print("Population alternating between factibles and infactibles individuals!")
 
     # Check tolX condition
     # Stop if the standard deviation of the normal distribution is smaller than in all coordinates and sigma*pc is amller than TolX
@@ -1435,15 +1435,14 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
 
   # User defined params (if set to None, uses default)
   # # Search restarted, shouldn't use default population Size
-  if feval != 0: 
-    parentsSize = int(1.5 * parentsSize)
-    centroid = mu = None
-    sigma = 0.1
-  else:
-    parentsSize = centroid = sigma = mu = None
+  # if feval != 0: 
+  #   parentsSize = int(1.5 * parentsSize)
+  #   centroid = mu = None
+  #   sigma = 0.1
+  # else:
+  #   parentsSize = centroid = sigma = mu = None
   
-  # parentsSize = centroid = sigma = mu = None
-  # rweights = "equal"
+  parentsSize = centroid = sigma = mu = None
   if case == "discrete":
     discreteSet = getDiscreteCaseList(function)
   if constraintHandling:
@@ -1557,7 +1556,6 @@ def CMAES(function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintH
     # Check restart criterias
     # parents.restartCriterias(constraintHandling, restartCriterias, populationDeque, noEffectAxisIdx, centroid, sigma, cond, pc, B, diagD, C)
     parents.restartCriteriasDeMelo(constraintHandling, restartCriterias, infeasibleTrials, sigma, maxFe, C)
-  # restartCriteriasDeMelo(self, constraintHandling, restartCriterias, infeasibleTrials, sigma, maxFe, C):
 
 
 

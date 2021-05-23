@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 
 # PROBLEMS_TYPE = "Classical Engineering" # Trusses | Classical Engineering | All
-PROBLEMS_TYPE = "Trusses" # Trusses | Classical Engineering | All
-PP_MEASUREMENT = "Best" # Best | Median | Average | St. Dev | Worst
+PROBLEMS_TYPE = "Classical Engineering" # Trusses | Classical Engineering | All
+PP_MEASUREMENT = "Average" # Best | Median | Average | St. Dev | Worst
 RUN_WILCOXON_TEST = False
 
 class Analysis(object):
@@ -34,6 +34,8 @@ def getNameIndividualToChoose(individual):
     individualToChoose = "Last individual"
   elif individual == "Last factible":
     individualToChoose = "Last factible individual"
+  elif individual == 'Vtr':
+    individualToChoose = "Value to reach"
   else:
     sys.exit("Individual to pick not defined.")
   return individualToChoose
@@ -47,8 +49,9 @@ def readResults():
     # functions = [110, 160]
     # functions = [160]
   elif PROBLEMS_TYPE == "Classical Engineering":
-    functions = [21, 22, 23, 24, 25] # Classical engineering problems
-    # functions = [21] # Classical engineering problems
+    # functions = [21, 22, 23, 24, 25] # Classical engineering problems
+    functions = [21, 222, 233, 24] # Classical engineering problems (DeMelo)
+    # functions = [233] # Classical engineering problems (DeMelo)
   elif PROBLEMS_TYPE == "All":
     # functions = [21, 22, 23, 24, 25, 110, 125, 160, 172, 1942] # All problems
     functions = [21, 22, 23, 24, 25, 110, 125, 160, 172] # All problems
@@ -56,18 +59,19 @@ def readResults():
   # weights = ["Linear", "Superlinear", "Equal"] # CMA-ES weights parameters
   weights = ["Superlinear"] # CMA-ES weights parameters
 
-  # individualToChoose = ["Last factible", "Hof"] # Types of individual to choose for analysis
-  individualToChoose = ["Hof"] # Types of individual to choose for analysis
+  # individualToChoose = ["Last factible", "Hof", "Vtr"] # Types of individual to choose for analysis
+  # individualToChoose = ["Hof"] # Types of individual to choose for analysis
+  individualToChoose = ["Vtr"] # Types of individual to choose for analysis
   trussCases = ["c", "d"] # Continuous or Discrete
   functionsName = [] # Saves functions name a strings ..:  ['110c', '110d', '125d']
-  # constraintHandlingMethods = ["APM"]
-  constraintHandlingMethods = ["DEB", "APM"]
+  constraintHandlingMethods = ["APM"]
+  # constraintHandlingMethods = ["DEB", "APM"]
 
 
 
   seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
   , 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-  # seeds = [1, 2]
+  # seeds = [2]
 
   basePath = Path(__file__).parent
   solutions = []
@@ -78,6 +82,10 @@ def readResults():
     'noEffectAxis': 0,
     'noEffectCoord': 0,
     'conditionCov': 0,
+    'infeasibleMaxTrials': 0,
+    'maximumSigma': 0,
+    'matrixNotSymmetrical': 0,
+    'negativeEigenval': 0,
   }
 
   # Dictionary containing functions to be analysed with max evaluations allowed
@@ -108,12 +116,24 @@ def readResults():
       'd': False
     },
     # Classical engineering problems
-    21: 36000,
-    22: 36000,
-    23: 320000,
-    24: 80000,
-    25: 35000
+    # 21: 36000,
+    # 22: 36000,
+    # 23: 320000,
+    # 24: 80000,
+    # 25: 35000,
+
+    # DeMelo
+    21: 20000,
+    222: 30000,
+    233: 20000,
+    24: 30000,
   }
+
+  # Function 21 => Tension compression spring | 20k
+  # Function 222 => Speed reducer | 30k
+  # Function 233 => Welded beam | 20k
+  # Function 24 => Pressure vessel | 30k
+  # Function 25 => Cantilever beam
 
   for f in functions: # Functions
     for c in trussCases:
@@ -156,6 +176,7 @@ def readResults():
                     functionsName.append(str(f))
                   file = open(filePath)
                   countFactibleInd = 0
+                  mFinal = None
                   while True:
 
                     buffer = file.readline()
@@ -169,8 +190,11 @@ def readResults():
                       hasFactibleSolution = True
                       updateBestIndividual = False
                       buffer = file.readline() # Read one more
+                      
                       if len(buffer) > 1: # Buffer is not empty
                         buffer = buffer.split(" ")
+                        # Gets the evaluations used for obtaining vtr and removes it from the buffer 
+                        m = buffer.pop(0)
                         # Verify if solution is feasible
                         if p == "DEB":
                           if float(buffer[1]) != 0:
@@ -187,6 +211,8 @@ def readResults():
                           for key, item in enumerate(buffer):
                             # First individual to be inserted on tempData, just insert it
                             if countFactibleInd == 0:
+                              # sys.exit("não saiu?")
+                              mFinal = m
                               tempData.append(float(item))
                             else:
                               if key == 0: # First buffer item
@@ -200,6 +226,7 @@ def readResults():
                                   break
                               if updateBestIndividual: # If individual has to be updated
                                 # print("Found a better one. Problem: {}: {}+{}+s{}".format(f, a, p, s))
+                                mFinal = m
                                 tempData.append(float(item))
                           countFactibleInd += 1
 
@@ -211,15 +238,18 @@ def readResults():
                         tempData.append(float(buffer))
                         if a == "CMAES":
                           if str(f)[0] == "1": # Truss problems
-                            tempData.append("Problem{}{}_{} {} {} + {} - m{}".format(f, c, a, w, i, p, m))
+                            tempData.append("Problem{}{}_{} {} {} + {} - m{}".format(f, c, a, w, i, p, mFinal))
                           elif str(f)[0] == "2": # Engineering problems
-                            tempData.append("Problem{}_{} {} {} + {} - m{}".format(f, a, w, i, p, m))
+                            tempData.append("Problem{}_{} {} {} + {} - m{}".format(f, a, w, i, p, mFinal))
                         elif a == "DE":
                           if str(f)[0] == "1": # Truss problems
-                            tempData.append("Problem{}{}_{} {} + {} - m{}".format(f, c, a, i, p, m))
+                            tempData.append("Problem{}{}_{} {} + {} - m{}".format(f, c, a, i, p, mFinal))
                           elif str(f)[0] == "2": # Engineering problems
-                            tempData.append("Problem{}_{} {} + {} - m{}".format(f, a, i, p, m))
+                            tempData.append("Problem{}_{} {} + {} - m{}".format(f, a, i, p, mFinal))
                         
+                        # Add neval to the list
+                        tempData.append(float(mFinal))
+
                         dataOfFunction.append(tempData)
                       break
       # Each list from solutions contains the data for each function
@@ -425,44 +455,60 @@ def getExtraResultsNew(np2dArr, rowsTitles, function):
   # Other Engineering Problems
   elif function == "21": # Tension/compression spring
     # Define algorithms and literature results
-    proposedAISGA = ["Proposed AIS-GA", 0.012666, 0.012892, 0.013131, 6.28e-4, 0.015318, 50] 
-    apmSpor = ["GA + APM SPOR - m36000", 0.012667602164, float('NaN'), 0.013748492439, float('NaN'), 0.017093902154, float('NaN')]
+    # proposedAISGA = ["Proposed AIS-GA", 0.012666, 0.012892, 0.013131, 6.28e-4, 0.015318, 50] 
+    # apmSpor = ["GA + APM SPOR - m36000", 0.012667602164, float('NaN'), 0.013748492439, float('NaN'), 0.017093902154, float('NaN')]
+    cmaEsDeMelo = ["CMAES de Melo - m19444.9", 0.012665239, float('NaN'), 0.01266861, 6.30e-06, 0.012693347, float('NaN'), 19444.9]
+    apmMed3_vtr = ['PSO + APM MED 3 - m20000', 0.01267, 0.0130405, 0.013808833333333333, 1.56e-03, 0.017773, 30, 20000]
     # Tese
     # apmMed3 = ["PSO + APM MED 3 - m36000", 0.01266, 0.01312, 0.01389 , 9.1731e-03, 0.01777, 35]
     # Executados por mim
-    apmMed3 = ["PSO + APM MED 3 - m36000", 0.012666, 0.012895, 0.013597 , 7.200257e-03, 0.017406, 30]
+    # apmMed3 = ["PSO + APM MED 3 - m36000", 0.012666, 0.012895, 0.013597 , 7.200257e-03, 0.017406, 30, 36000]
 
     # Append name of algorihtms
-    rowsTitles.append(proposedAISGA[0])
-    rowsTitles.append(apmSpor[0])
-    rowsTitles.append(apmMed3[0])
+    # rowsTitles.append(proposedAISGA[0])
+    # rowsTitles.append(apmSpor[0])
+    rowsTitles.append(apmMed3_vtr[0])
+    rowsTitles.append(cmaEsDeMelo[0])
 
     # Append reults on np2darr
-    np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [apmMed3_vtr[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [cmaEsDeMelo[1:]], axis=0)
   elif function == "22": # Speed reducer
     # Define algorithms and literature results
-    proposedAISGA = ["Proposed AIS-GA", 2996.3483, 2996.3495, 2996.3501, 7.45e-3, 2996.3599, 50] 
-    apmSpor = ["GA + APM SPOR - m36000", 2996.34850933205, float('NaN'), 2996.35243640334, float('NaN'), 2996.36609677358, float('NaN')]
+    # proposedAISGA = ["Proposed AIS-GA", 2996.3483, 2996.3495, 2996.3501, 7.45e-3, 2996.3599, 50] 
+    # apmSpor = ["GA + APM SPOR - m36000", 2996.34850933205, float('NaN'), 2996.35243640334, float('NaN'), 2996.36609677358, float('NaN')]
     # Tese
     # apmMed3 = ["PSO + APM MED 3 - m36000", 2996.3622 , 2996.3780, 2999.6083, 3.4911e+01, 3016.7808, 35]
     # Executados por mim
     apmMed3 = ["PSO + APM MED 3 - m36000", 2996.356314 , 2996.381070, 3000.659737, 3.429298e+01, 3016.777031, 29]
 
     # Append name of algorihtms
-    rowsTitles.append(proposedAISGA[0])
-    rowsTitles.append(apmSpor[0])
+    # rowsTitles.append(proposedAISGA[0])
+    # rowsTitles.append(apmSpor[0])
     rowsTitles.append(apmMed3[0])
 
+    # Append name of algorihtms
     # Append reults on np2darr
-    np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
     np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+  elif function == "222": # Speed Reducer (DeMelo)
+    # Define algorithms and literature results
+    cmaEsDeMelo = ["CMAES de Melo - m12998.4", 2994.471066, float('NaN'), 2994.471066, 8.977826e-10, 2994.471066, float('NaN'), 12998.4]
+    apmMed3_vtr = ['PSO + APM MED 3 - m30000', 2994.491521, 2999.1823329999997, 3001.503946433333, 8.05e+00, 3016.790751, 30, 30000]
+    # Append name of algorihtms
+    rowsTitles.append(cmaEsDeMelo[0])
+    rowsTitles.append(apmMed3_vtr[0])
+    # Append reults on np2darr
+    np2dArr = np.append(np2dArr, [cmaEsDeMelo[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [apmMed3_vtr[1:]], axis=0)
   elif function == "23": # Welded beam
     # Define algorithms and literature results
-    proposedAISGA = ["Proposed AIS-GA", 2.38335, 2.92121, 2.99298, 2.02e-1, 4.05600, 50] 
-    apmSpor = ["GA + APM SPOR - m?", 2.38113481849464 , float('NaN'), 2.58228221674671 , float('NaN'), 3.20898593483156, float('NaN')]
+    # Best Median Average Std Worst fr
+    # proposedAISGA = ["Proposed AIS-GA", 2.38335, 2.92121, 2.99298, 2.02e-1, 4.05600, 50] 
+    # apmSpor = ["GA + APM SPOR - m?", 2.38113481849464 , float('NaN'), 2.58228221674671 , float('NaN'), 3.20898593483156, float('NaN')]
     # Tese
     # apmMed3 = ["PSO + APM MED 3 - m320000", 2.38114 , 2.43315, 2.67102, 2.0656e+00, 3.46638, 35] #nRun: 32k
     # Executados por mim
@@ -471,32 +517,46 @@ def getExtraResultsNew(np2dArr, rowsTitles, function):
     apmMed3 = ["PSO + APM MED 3 - m320000", 2.381146 , 2.512969, 2.663524, 1.984252e+00, 3.585389, 30] #nRun:320k
 
     # Append name of algorihtms
-    rowsTitles.append(proposedAISGA[0])
-    rowsTitles.append(apmSpor[0])
+    # rowsTitles.append(proposedAISGA[0])
+    # rowsTitles.append(apmSpor[0])
     rowsTitles.append(apmMed3[0])
 
     # Append reults on np2darr
-    np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
     np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+  elif function == "233":
+    # Define algorithms and literature results
+    cmaEsDeMelo = ["CMAES de Melo - m4658.133", 1.7248523, float('NaN'), 1.7248523, 1.664065e-09, 1.7248523, float('NaN'), 4658.133]
+    apmMed3_vtr = ['PSO + APM MED 3 - m30000', 1.715235, 1.7245385, 1.8600546666666669, 2.29e-01, 2.708653, 30, 10671.6667]
+    # Append name of algorihtms
+    rowsTitles.append(cmaEsDeMelo[0])
+    rowsTitles.append(apmMed3_vtr[0])
+    # Append reults on np2darr
+    np2dArr = np.append(np2dArr, [cmaEsDeMelo[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [apmMed3_vtr[1:]], axis=0)
   elif function == "24": # Pressure Vesel
     # Define algorithms and literature results
-    proposedAISGA = ["Proposed AIS-GA", 6059.855, 6426.710, 6545.126, 1.24E+2, 7388.160, 50] 
-    apmSpor = ["GA + APM SPOR - m80000", 6059.73045731256 , float('NaN'), 6581.18398763114 , float('NaN'), 7333.93495942434, float('NaN')]
+    # proposedAISGA = ["Proposed AIS-GA", 6059.855, 6426.710, 6545.126, 1.24E+2, 7388.160, 50] 
+    # apmSpor = ["GA + APM SPOR - m80000", 6059.73045731256 , float('NaN'), 6581.18398763114 , float('NaN'), 7333.93495942434, float('NaN')]
+    cmaEsDeMelo = ["CMAES de Melo - m30017.8", 6059.714335, float('NaN'), 6170.250553452, 140.4843, 6410.08675986927, float('NaN'), 30017.8]
+    apmMed3_vtr = ['PSO + APM MED 3 - m30000', 6059.714426, 6090.526388, 6259.142258266666, 2.66e+02, 6820.41028, 30, 30000]
     # Tese
     # apmMed3 = ["PSO + APM MED 3 - m80000", 6059.7143 , 6370.7797, 6427.6676, 2.6221e+03, 7544.4925, 35]
     # Executados por mim
-    apmMed3 = ["PSO + APM MED 3 - m80000", 6059.714360, 6370.779797, 6504.021887, 2.701649e+03, 7544.492518, 30]
+    # apmMed3 = ["PSO + APM MED 3 - m80000", 6059.714360, 6370.779797, 6504.021887, 2.701649e+03, 7544.492518, 30, 80000]
 
     # Append name of algorihtms
-    rowsTitles.append(proposedAISGA[0])
-    rowsTitles.append(apmSpor[0])
-    rowsTitles.append(apmMed3[0])
+    # rowsTitles.append(proposedAISGA[0])
+    # rowsTitles.append(apmSpor[0])
+    rowsTitles.append(apmMed3_vtr[0])
+    rowsTitles.append(cmaEsDeMelo[0]) 
 
     # Append reults on np2darr
-    np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
-    np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [proposedAISGA[1:]], axis=0)
+    # np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [apmMed3_vtr[1:]], axis=0)
+    np2dArr = np.append(np2dArr, [cmaEsDeMelo[1:]], axis=0)
   elif function == "25": # Cantilever beam
     # Define algorithms and literature results
     proposedAISGA = ["Proposed AIS-GA", 64834.70, 74987.16, 76004.24, 6.93E+3, 102981.06, 50] 
@@ -517,7 +577,7 @@ def getExtraResultsNew(np2dArr, rowsTitles, function):
     np2dArr = np.append(np2dArr, [apmSpor[1:]], axis=0)
     np2dArr = np.append(np2dArr, [apmMed3[1:]], axis=0)
   else:
-    sys.exit("Function not defineda.")
+    sys.exit("Function not defined.")
   return np2dArr, rowsTitles
 
 def makeAnalysisNew(solutions, functions, analysis):
@@ -535,20 +595,30 @@ def makeAnalysisNew(solutions, functions, analysis):
       df = pd.DataFrame.from_records(problem)
       titles = ["Objective Function", "ViolationSum/Fitness"]
       # Define name for columns of the project variables
-      for i in range(len(df.columns)-4):
+      for i in range(len(df.columns)-5):
         titles.append("DesignVariables{}".format(i))
 
       # Define name for the last 2 columns
       titles.append("CPU Time(s)")
       titles.append("Algorithm")
+      titles.append("Evaluations")
 
       # Name columns
       df.columns = titles
 
       # Drop columns that contains word | Could be done with df.filter(regex)
-      # df.drop([col for col in df.columns if "DesignVariables" in col], axis=1, inplace=True)
-      # df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
+
+      # TODO Comentar/Descomentar linha abaixo conforme análise
+      df.drop([col for col in df.columns if "DesignVariables" in col], axis=1, inplace=True)
+      
+      df.drop([col for col in df.columns if "ViolationSum" in col], axis=1,inplace=True)
       df.drop([col for col in df.columns if "CPU Time" in col], axis=1,inplace=True)
+      # df.drop([col for col in df.columns if "Evaluations" in col], axis=1,inplace=True)
+
+
+      # print(df)
+      # TODO Comentar/Descomentar linha abaixo conforme análise (Descomentar para gerar tabelas, DeMelo)
+      df['Algorithm'] = df['Algorithm'].str.split(' -').str.get(0)
 
 
 
@@ -568,25 +638,25 @@ def makeAnalysisNew(solutions, functions, analysis):
       # sys.exit('okz')
       # # Group by algorithm and calcualtes statistical measures
       grouped = df.groupby(["Algorithm"])
-      # print("grouped:\n{}".format(grouped))
-      # sys.exit('ok')
 
       # Imprime as variáveis de projeto de cada problema, por algoritmo
       pd.set_option('display.max_columns', None)
       pd.set_option('display.max_rows', None)
       pd.set_option('display.width', None)
       pd.set_option('display.max_colwidth', None)
+      # pd.set_option('display.precision', 18)
       # groupedMin = grouped.min()
       # print(groupedMin)
 
       # print('Imprime Grouped MIN (FIXED)')
-      print(problem[key][-1])
+
+      # Bloco abaixo imprime o melhor valor da função objetivo para cada algoritmo
+      # print(problem[key][-1])
       groupedMin = df.loc[df.groupby(['Algorithm'])['Objective Function'].idxmin()]
-      print(groupedMin)
-      print()
+      # print(groupedMin)
+      # print(df['DesignVariables0'][0])
+      # Bloco acima imprime o melhor valor da função objetivo para cada algoritmo
 
-
-      # sys.exit('ok')
       # Bloco abaixo funciona
       myDict = {}
       algorithmArrayDf = grouped['Objective Function'].apply(list)
@@ -603,24 +673,46 @@ def makeAnalysisNew(solutions, functions, analysis):
       #   print(values)
       # # sys.exit('ok')
       # # Bloco acima funciona
-      
 
-      # grouped = df.groupby(["Algorithm"])
-      grouped = grouped.agg(["min", "median", "mean", "std", "max", "size"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+      
+      # grouped = grouped.agg(["min", "median", "mean", "std", "max", "size"]) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+      grouped = grouped.agg({'Objective Function': ["min", "median", "mean", "std", "max", "size"], 'Evaluations': "mean"}) # df = df.agg([np.mean, np.std, np.min, np.max]) also works
+      # print('grouped', grouped)
+      # sys.exit("ok")
+
       # print(grouped)
       # Generates 2d np array from pandas grouped df
       np2dArr = grouped.to_numpy()
+      # print('np2dArr', np2dArr)
+
+
+
+
+      # Append evalutions avg to np2dArr
       # Get row and columns titles
       rowsTitles = list(grouped.index.values) 
-      columnsTitles = list(grouped.columns.levels[1])
+      columnsTitles = list(grouped['Objective Function'].columns)
+      # columnsTitles = list(grouped['Objective Function'].columns.levels[1])
+      # Add new column title
+      columnsTitles.append('NFEs')
+      # print('rowTitles', rowsTitles)
+      # print('columnsTitles', columnsTitles)
+      # sys.exit("ok1")
+
+
+      
       # Get extra results (appending other literature algorithms on 2d np arr)
-      # np2dArr, rowsTitles = getExtraResultsNew(np2dArr, rowsTitles, functions[key])
+      # TODO Comentar/Descomentar linha abaixo conforme análise
+      np2dArr, rowsTitles = getExtraResultsNew(np2dArr, rowsTitles, functions[key])
+
       # Generates .text table
       # if functions[key] == '110c' or functions[key] == '110d' or functions[key] == '125d' or functions[key] == '160c' or functions[key] == '172c':
       # print("analysis: {}".format(analysis))
       # sys.exit('obrigado')
-      # Imprime tabelas com os resultados
-      # np2dArrToLatexNew(np2dArr, columnsTitles, rowsTitles, analysis)
+      # Imprime tabelas com os resultados\
+
+      # TODO Comentar/Descomentar linha abaixo conforme análise
+      np2dArrToLatexNew(np2dArr, columnsTitles, rowsTitles, analysis)
   # sys.exit('ok')
 
 def isTruss(function):
@@ -717,7 +809,7 @@ def np2dArrToLatexNew(np2dArr, columnsTitles, rowsTitles, analysisTable):
   minOfEachColumn = np.nanmin(np2dArr, axis=0)
 
   # Define print format, table aligmnent and round rpecision
-  precRound = 4 # Precision round parameter for highlightning minimum value from column
+  precRound = 8 # Precision round parameter for highlightning minimum value from column
   if isTruss(currentFunctionName): # Truss problems, use only 2 floating points
     precRound = 2
   precFormat = "e" # Precision format for priting table. Cand be '.xf' or 'e' for scientific notation
@@ -728,9 +820,9 @@ def np2dArrToLatexNew(np2dArr, columnsTitles, rowsTitles, analysisTable):
   tabAlign = "{{@{{}} l | {} @{{}}}}".format(texTableAlign*len(columnsTitles)) 
 
   # Begin of table structure .tex
-  print("\\begin{table}[h]")
+  print("\\begin{table}[H]")
   print("\\centering")
-  print("\\resizebox{0.8\\textwidth}{!}{")
+  print("\\resizebox{0.7\\textwidth}{!}{")
   print("\\begin{minipage}{\\textwidth}")
   print("\\caption{{{}}}".format(caption))
   
@@ -765,20 +857,26 @@ def np2dArrToLatexNew(np2dArr, columnsTitles, rowsTitles, analysisTable):
         # Increments algorithm who performed better
         idxItem = getItemIndex(rowsTitles[rowIndex],analysisTable)
         analysisTable.table[idxItem][columnIndex] +=1
-        # Last item of row (fr) doesn't need bold, its printed without floating points and uses line break 
+        # Last item of row (NFEs) its printed with 2 floating points and uses line break
         if columnIndex == len(row) -1: # TODO Use name of column instead of indexes for more readability
-          print("{:{prec}}".format(item, prec=".0f"), end=" \\\ ")
-        # Third to last item of row (std) its printed used scientific notation 
-        elif columnIndex == len(row) -3: # TODO Use name of column instead of indexes for more readability
+          print("\\textbf{{{:{prec}}}}".format(item, prec=".2f"), end=" \\\ ")
+        # Second to last of row (fr) doesn't need bold, its printed without floating points and uses line break 
+        elif columnIndex == len(row) -2: # TODO Use name of column instead of indexes for more readability
+          print("{:{prec}}".format(item, prec=".0f"), end=" & ")
+        # Fourth to last item of row (std) its printed used scientific notation 
+        elif columnIndex == len(row) -4: # TODO Use name of column instead of indexes for more readability
           print("\\textbf{{{:{prec}}}}".format(item, prec="0.2e"), end=" & ")
         else:
           print("\\textbf{{{:{prec}}}}".format(item, prec=precFormat), end=" & ")
       else:
-        # Last item of row (fr) its printed without floating points and uses line break
+        # Last item of row (NFEs) its printed with 2 floating points and uses line break
         if columnIndex == len(row) -1: # TODO Use name of column instead of indexes for more readability
-          print("{:{prec}}".format(item, prec=".0f"), end=" \\\ ")
-        # Third to last item of row (std) its printed used scientific notation 
-        elif columnIndex == len(row) -3: # TODO Use name of column instead of indexes for more readability
+          print("{:{prec}}".format(item, prec=".2f"), end=" \\\ ")
+        # Second to last item of row (fr) its printed without floating points and uses line break
+        elif columnIndex == len(row) -2: # TODO Use name of column instead of indexes for more readability
+          print("{:{prec}}".format(item, prec=".0f"), end=" &")
+        # Fourth to last item of row (std) its printed used scientific notation 
+        elif columnIndex == len(row) -4: # TODO Use name of column instead of indexes for more readability
           print("{:{prec}}".format(item, prec="0.2e"), end=" & ")
         else:
           print("{:{prec}}".format(item, prec=precFormat), end=" & ")

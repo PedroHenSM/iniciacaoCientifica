@@ -22,11 +22,13 @@
 #include "eureka/Problem.h"
 
 
-#define USE_PRESSURE
-#define N_VAR 4 // STRING: 3, REDUCER: 7, WELDED: 4, PRESSURE: 4, CANTILEVER: 10, T10C: 10, T10D: 10, T25D: 25, T52D: 52, T60C: 60, T60D: 60, T72C: 72, T942C: 942
-#define N_CON 4 // STRING: 4, REDUCER: 11, WELDED: 5, PRESSURE: 4, CANTILEVER: 11, T10C: 18, T10D:18, T25D: 43, T52D: 32, T60C: 198, T72C: 240, T942C:
+// #define USE_WELDED_MOD1_7
+#define USE_STRING
+#define N_VAR 3 // STRING: 3, REDUCER: 7, WELDED: 4, USE_WELDED_MOD1_7: 4, PRESSURE: 4, CANTILEVER: 10, T10C: 10, T10D: 10, T25D: 25, T52D: 52, T60C: 60, T60D: 60, T72C: 72, T942C: 942
+#define N_CON 4 // STRING: 4, REDUCER: 11, WELDED: 5, USE_WELDED_MOD1_7: 7, PRESSURE: 4, CANTILEVER: 11, T10C: 18, T10D:18, T25D: 43, T52D: 32, T60C: 198, T72C: 240, T942C:
 #define MAX_PAR 50
-#define MAX_TIME 1600 // S:720 R:720 W:640/6400 P:1600 C:700 T10C:5600 T10D:3600/1800 T25D:400 T52D:350 T60C:240 T72C:700 T942C:300(acho) 
+#define MAX_TIME 1500 // STRING: 400 (20k), REDUCER: 600 (30k) , WELDED_MOD: 400 (20K), PRESSURE: 600 (30k) (DeMelo)
+// #define MAX_TIME 640 // S:720 R:720 W:640/6400 P:1600 C:700 T10C:5600 T10D:3600/1800 T25D:400 T52D:350 T60C:240 T72C:700 T942C:300(acho) 
 #define MAX_RUN 30
 #define INIT 999999999
 
@@ -509,6 +511,21 @@ void boundary (double lowerBound[], double upperBound[]) {
 	#endif
 
 	#ifdef USE_REDUCER
+		// lowerBound[0] = 2.6;   
+		// upperBound[0] = 3.6;
+		// lowerBound[1] = 0.7;   
+		// upperBound[1] = 0.8;
+		// lowerBound[2] = 17;   
+		// upperBound[2] = 28;
+		// lowerBound[3] = 7.3;   
+		// upperBound[3] = 8.3;
+		// lowerBound[4] = 7.8;   
+		// upperBound[4] = 8.3;
+		// lowerBound[5] = 2.9;   
+		// upperBound[5] = 3.9;	
+		// lowerBound[6] = 0;   
+		// upperBound[6] = 20;		
+
 		lowerBound[0] = 2.6;   
 		upperBound[0] = 3.6;
 		lowerBound[1] = 0.7;   
@@ -517,12 +534,12 @@ void boundary (double lowerBound[], double upperBound[]) {
 		upperBound[2] = 28;
 		lowerBound[3] = 7.3;   
 		upperBound[3] = 8.3;
-		lowerBound[4] = 7.8;   
+		lowerBound[4] = 7.3;   
 		upperBound[4] = 8.3;
 		lowerBound[5] = 2.9;   
 		upperBound[5] = 3.9;	
-		lowerBound[6] = 0;   
-		upperBound[6] = 20;		
+		lowerBound[6] = 5;   
+		upperBound[6] = 5.5;		
 	#endif
 
 	#ifdef USE_WELDED
@@ -533,6 +550,20 @@ void boundary (double lowerBound[], double upperBound[]) {
 			lowerBound[m] = 0.1;  
 			upperBound[m] = 10; 
 		} 
+	#endif
+
+	#ifdef USE_WELDED_MOD1_7
+		lowerBound[0] = 0.1;
+		upperBound[0] = 2;
+
+		lowerBound[1] = 0.1;
+		upperBound[1] = 10;
+
+		lowerBound[2] = 0.1;
+		upperBound[2] = 10;
+
+		lowerBound[3] = 0.1;
+		upperBound[3] = 2;
 	#endif
 
 	#ifdef USE_PRESSURE
@@ -681,6 +712,7 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 	int i, j, m, cont1, cont2, cont3;
 	double x[N_VAR], g[N_CON];
 	// printf("\ndentro de constraint");
+	// exit(66);
 
 	for (i = 0; i < MAX_PAR; i++) {
 		for (j = 0; j < N_VAR; j++) {
@@ -740,6 +772,36 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 			g[3] = - Pc + 6000;
 			g[4] = delta - 0.25 ;
 			//g[0] = 0;
+		#endif
+
+		#ifdef USE_WELDED_MOD1_7
+		  double p = 6000;
+			double l = 14;
+			double e = 30 * (pow(10, 6));
+			double G = 12 * (pow(10, 6));
+			double tauMax = 13600;
+			double sigmaMax = 30000;
+			double deltaMax = 0.25;
+
+			double m = p * (l + (x[1] / 2));
+			double r = sqrt( (pow(x[1], 2) / 4) + pow(((x[0] + x[2]) / 2), 2) );
+			double j = 2 * ( sqrt(2) * x[0] * x[1] * ((pow(x[1], 2) / 12) + pow( (x[0] + x[2] / 2), 2)));
+
+			double tauLinha = p / (sqrt(2) * x[0] * x[1]);
+			double tauDuasLinhas = (m * r) / j;
+			double sigmaX = (6 * p * l) / ( x[3] * pow(x[2], 2));
+			double deltaX = (4 * p * pow(l, 3)) / (e * pow(x[2], 3) * x[3]);
+			double pcX = ((4.013 * e * sqrt((pow(x[2], 2) * pow(x[3], 6)) / 36 )) / pow(l,2)) * (1 - (x[2] / (2 * l)) * sqrt(e / (4*G)));
+			double tauX = sqrt( pow(tauLinha, 2) + 2 * tauLinha * tauDuasLinhas * (x[1] / (2*r)) + pow(tauDuasLinhas, 2));
+
+
+			g[0] = tauX - tauMax; // # <= 0
+			g[1] = sigmaX - sigmaMax; // # <= 0
+			g[2] = x[0] - x[3]; // # <= 0
+			g[3] = 0.10471 * pow(x[0], 2) + 0.04811 * x[2] * x[3] * (14.0 + x[1]) - 5; // # <= 0
+			g[4] = 0.125 - x[0]; // # <= 0
+			g[5] = deltaX - deltaMax; // # <= 0
+			g[6] = p - pcX; // # <= 0
 		#endif
 
 		#ifdef USE_PRESSURE
@@ -1123,12 +1185,16 @@ void constraint (swarm_t * swarm, double ** violationAcum, double * violation, d
 			}
 		#endif
 
-
+		// for (int it = 0; it < N_CON; it++){
+		// 	printf("g[%d]: %f", it, g[it]);
+		// }
 		// printf("dentro de constraint");
+		// exit(1);
 
 		sumConst[i] = 0.;
 
-		for (m = 0; m < N_CON; m++) {
+		for (int m = 0; m < N_CON; m++) {
+			// printf("g[%d]: %f", m, g[m]);
 			if (g[m] > 0) { 
 				violation[m] += g[m];
 				numViolation[m]++;
@@ -2927,6 +2993,14 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 		#endif
 
 		#ifdef USE_WELDED
+			/*x[0] = 0.2442949; 
+			x[1] = 6.2116738;
+			x[2] = 8.3015486;
+			x[3] = 0.2443003;*/
+			function = (1.10471 * x[0] * x[0] * x[1]) + 0.04811 * x[2] * x[3] * (14.0 + x[1]);
+		#endif
+
+		#ifdef USE_WELDED_MOD1_7
 			/*x[0] = 0.2442949; 
 			x[1] = 6.2116738;
 			x[2] = 8.3015486;
@@ -4929,7 +5003,6 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 			printf("x[%d] = %lf\t", j, x[j]);
 		printf("function = %lf\n", function);*/
 
-		// printf("chegou");
 		swarm->particles[i].fitness = function;
 		functionAvg += function;
 	}
@@ -4938,8 +5011,8 @@ void fitness (swarm_t * swarm, double * k, double ** violationAcum, int generati
 
 	// CHANGE VARIANTS
 	// printf("pré apm (dentro de fitness)\n");
-	APM (swarm, functionAvg, k, violationAcum, valuesArray);
-	// med_3_APM (swarm, functionAvg, k, violationAcum, valuesArray);
+	// APM (swarm, functionAvg, k, violationAcum, valuesArray);
+	med_3_APM (swarm, functionAvg, k, violationAcum, valuesArray);
 	// printf("pos APM!");
 	// exit(1);
 	//sporadic_APM (swarm, functionAvg, k, violationAcum, generation);
@@ -5089,6 +5162,28 @@ void update (swarm_t * swarm, double lowerBound[], double upperBound[], double a
 	}
 }
 
+double valueToReach(){
+  double fOptima = NULL;
+
+	#ifdef USE_STRING
+		fOptima = 0.012665 + 1e-8;
+	#endif
+
+	#ifdef USE_REDUCER
+		fOptima = 2994.471066 + 1e-7;
+	#endif
+
+	#ifdef USE_WELDED_MOD1_7
+		fOptima = 1.7248523110932348 + 1e-8;
+	#endif
+
+	#ifdef USE_PRESSURE
+		fOptima = 6059.701660 + 1e-6;
+	#endif
+
+	return fOptima;
+}
+
 /**
  * Deallocate function - deallocates the swarm used.
  */
@@ -5131,8 +5226,8 @@ int main () {
 	// F105Truss60Bar *truss= new F107Truss72Bar();
 	// printf("truss.getDimensio(): %d\n", trussTestObj1->getDimension());
 	
-	printf("dimension: %d\n", truss->getDimension());
-	printf("constraints: %d\n", truss->getNumberConstraints());
+	// printf("dimension: %d\n", truss->getDimension());
+	// printf("constraints: %d\n", truss->getNumberConstraints());
 	// exit(3);
 
 	
@@ -5187,8 +5282,14 @@ int main () {
 	feasibleBest = INIT;
 	feasibleWorst = -INIT;
 
+
+	double sumFevalVtr = 0;
+	int contVtr = 0;
+
 	for (run = 0; run < MAX_RUN; run++) {	
 		index = -1;
+		int vtr = 0;
+
 		swarm_t * swarm = allocate(); // Allocates the swarm.	
 
 		// best
@@ -5253,7 +5354,24 @@ int main () {
 				best->fitness = swarm->gBest.fitness;
 				best->fitnessAPM = swarm->gBest.fitnessAPM;
 			}
-			
+
+			if(best->fitnessAPM - valueToReach() <= 0){
+				// printf("vtr obtained..\n");
+				vtr = 1;
+				// // printf("\n\n");
+				// // printf("BEST %d - run #%d\n", index, run);
+				// for (j = 0; j < N_VAR; j++){
+				// 	printf("x[%d] = %.12lf\t\t", j, best->position[j]);
+				// 	// bestFeasiblePosition[j] = best->position[j];
+				// }	
+				// printf("\nBest = %.12lf ", best->fitness);
+				// printf("BestAPM = %.12lf ", best->fitnessAPM);
+				// printf("\nsaiu if vtr");
+				break;
+			}
+
+
+			// printf("continuou executando.\n");
 			// Print gBest
 			/*printf("\n\nIteração %d - ", i);
 			for (j = 0; j < N_VAR; j++)	
@@ -5263,15 +5381,19 @@ int main () {
 			for (j = 0; j < N_CON; j++)
 				printf("v = %.12lf ", swarm->gBest.v[j]);*/
 		}
-
-		printf("\n\n");
-		printf("BEST %d - run #%d\n", index, run);
-		for (j = 0; j < N_VAR; j++){
-			printf("x[%d] = %.12lf\t\t", j, best->position[j]);
-			// bestFeasiblePosition[j] = best->position[j];
-		}	
-		printf("\nBest = %.12lf ", best->fitness);
-		printf("BestAPM = %.12lf ", best->fitnessAPM);
+			sumFevalVtr += index*MAX_PAR;
+			contVtr+= 1;
+			printf("\n\n");
+			if(vtr){
+				printf("vtr obtained..\n");
+			}
+			printf("BEST %d - feval %d - run #%d\n", index, index*MAX_PAR, run);
+			for (j = 0; j < N_VAR; j++){
+				printf("x[%d] = %.12lf\t\t", j, best->position[j]);
+				// bestFeasiblePosition[j] = best->position[j];
+			}	
+			printf("\nBest = %.12lf ", best->fitness);
+			printf("BestAPM = %.12lf ", best->fitnessAPM);
 		
 		// Imprime o melhor indíviduo de cada execução independente
 		if (run == 0){ // Primeira iteração
@@ -5285,6 +5407,10 @@ int main () {
 
 			#ifdef USE_WELDED
 				fprintf (outputIndependentExecs, "WELDED\n%lf ", best->fitness);
+			#endif
+
+			#ifdef USE_WELDED_MOD1_7
+				fprintf (outputIndependentExecs, "WELDED_MOD1_7\n%lf ", best->fitness);
 			#endif
 
 			#ifdef USE_PRESSURE
@@ -5345,7 +5471,6 @@ int main () {
 			printf("v = %e ", best->v[j]);
 
 		printf("\n");
-		// printf("\nchegou aqui\n");
 	
 
 		//Deallocate
@@ -5354,11 +5479,9 @@ int main () {
 		
 		free (violationAcum);
 		free (k);
-		// printf("\nchegou final do foraqui\n");
 		// free (best);
 		deallocate(swarm);
 		// deallocateBest(best);
-		// printf("\nchegou final do for aqui de verdade\n");
 	}
 
 	// Deallocate truss
@@ -5445,6 +5568,17 @@ int main () {
 				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
 			fprintf(outputAll, " endProjectVariables(best individual)\t");
 			printf("\nWELDED\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+		#endif
+
+		#ifdef USE_WELDED_MOD1_7
+			fprintf (output, "WELDED_MOD1_7\t&\t %lf \t&\t %lf \t&\t %lf \t&\t %lf \t&\t %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			fprintf (outputPP, "WELDED_MOD1_7\t%lf \n", feasibleAverage / total);
+			fprintf (outputPP2, "WELDED_MOD1_7\t%lf \n", feasibleBest);
+			fprintf (outputAll, "WELDED_MOD1_7\t %lf \t %lf \t %lf \t %lf \t %e \t projectVariables(best individual): ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
+			for (j = 0; j < N_VAR; j++)
+				fprintf (outputAll, "%lf \t", bestFeasiblePosition[j]);
+			fprintf(outputAll, " endProjectVariables(best individual)\t");
+			printf("\nWELDED_MOD1_7\tBest: %lf Median: %lf Average: %lf Worst: %lf Desvio Padrão: %e ", feasibleBest, feasibleMedian, feasibleAverage / total, feasibleWorst, dp);
 		#endif
 
 		#ifdef USE_PRESSURE
@@ -5570,6 +5704,7 @@ int main () {
 	}
 
 	printf("Feasibility: %d/%d  nRun: #%d\n\n", total, MAX_RUN, MAX_TIME * MAX_PAR);
+	printf("Mean FevalVTR: %.4f\n", sumFevalVtr/30);
 	fprintf(output, "\t&\t %d/%d \t %d\n\n", total, MAX_RUN, MAX_TIME * MAX_PAR);
 	fprintf(outputAll, "%d/%d \t%d\n\n", total, MAX_RUN, MAX_TIME * MAX_PAR);
 	fclose(output);

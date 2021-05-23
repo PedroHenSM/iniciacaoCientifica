@@ -8,6 +8,7 @@ import timeit
 from math import sqrt, log, exp
 
 def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed, maxFe, constraintHandling, case, rweights):
+  np.random.seed(seed)
   if algorithm == "GA":
     sys.exit("Not implemented.")
   elif algorithm == "DE":
@@ -34,11 +35,11 @@ def execAlgorithm(algorithm, function, nSize, parentsSize, offspringsSize, seed,
 def menu():
   parser = argparse.ArgumentParser(description="Evolutionary Algorithms")
   parser.add_argument("--algorithm", "-a", type=str, default="CMAES", help="Algorithm to be used (GA, ES, DE or CMAES)")
-  parser.add_argument("--function", "-f", type=int, default=23, help="Truss to be solved (10, 25, 60, 72 or 942 bars). "
+  parser.add_argument("--function", "-f", type=int, default=24, help="Truss to be solved (10, 25, 60, 72 or 942 bars). "
             "For the truss problem, the first digit must be 2, followed by the number of the bars in the problem. "
             "Example: 225, is for the truss of 25 bars")
   parser.add_argument("--seed", "-s", type=int, default=1, help="Seed to be used")
-  parser.add_argument("--constraintHandling", "-p", type=str, default="DEB", help="Constraint handling method to be used (DEB or APM)")
+  parser.add_argument("--constraintHandling", "-p", type=str, default="APM", help="Constraint handling method to be used (DEB or APM)")
   parser.add_argument("--parentsSize", "-u", type=int, default=50, help="µ is the parental population size")  # u from µ (mi) | µ ≈ λ/4
   parser.add_argument("--nSize", "-n", type=int, default=5, help="Search space dimension")
   parser.add_argument("--offspringsSize", "-l", type=int, default=50, help="λ is number of offsprings, offsprings population size")  # l from λ (lambda) | µ ≈ λ/4
